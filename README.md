@@ -46,9 +46,9 @@ The **Library** is the last card of Games, at the far right, with a picture of a
 squares, on the colour of your theme. It is always there and it can't be removed, but you can pin it like any other card: it
 then moves to the front with the pinned ones (it does not count towards the eight games). Press ✕ on it (or on its **Open**
 button) to open the Library: everything you have, games and apps together, in a grid that's easy to scan
-through. Inside it the top bar shows only **Library**, and ○ closes it again – you are back on the Library card. Press ↑ from a
-card in the first row that sits right under the **Sort** button to reach it, and ✕ to sort by
-name or by what you added most recently. From every other card of the first row ↑ goes straight to the cog wheel.
+through. Inside it the top bar shows only **Library**, and ○ closes it again – you are back on the Library card. Press ↑ from any
+card in the first row to reach the **Sort** button (it is always the first stop on the way up), and ✕ to sort by
+name or by what you added most recently. ↑ once more takes you to the cog wheel, and ↓ from the cog wheel brings you back to the Sort button.
 
 There are no button hints on screen: the whole menu is navigated with the D-pad. Press ↑ from the first thing on a
 tab (the game, the first row of the Library, the first track) to select the top bar. **Games**, **Music** and the

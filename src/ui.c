@@ -795,18 +795,6 @@ static void sort_text(const Ui *ui, char *out, int size)
     snprintf(out, size, "%s: %s", L(S_SORT), L(ui->lib_sort ? S_SORT_RECENT : S_SORT_NAME));
 }
 
-/* Whether the Sort button is straight above the card in column `col` of the grid's first row, i.e. between the card and the
- * top bar: the middle of the card is under the button's frame. The button is at the right; the cards further left have
- * nothing above them, ↑ goes straight to the top bar from there. */
-static int sort_above(const Ui *ui, int col)
-{
-    char text[64];
-    sort_text(ui, text, sizeof(text));
-    float left = SCREEN_W - MARGIN - text_width(SORT_SIZE, 0, text) - SORT_PAD, right = SCREEN_W - MARGIN + SORT_PAD;
-    float mid = MARGIN + col * (CELL_W + GRID_GAP) + CELL_W / 2;
-    return mid >= left && mid <= right;
-}
-
 /* ↑ from the first thing of a tab (or from the Sort button, to the cog wheel) selects the top bar */
 static void enter_top_bar(Ui *ui, int which)
 {
@@ -815,8 +803,8 @@ static void enter_top_bar(Ui *ui, int which)
 }
 
 /* The top bar has the focus: ← → move over the tabs and the cog wheel, ✕ on a tab opens it (the highlight goes, the
- * tab turns bold as always), ✕ on the cog wheel opens Settings, ↓ goes back down to where ↑ came from (the Sort
- * button, if that is where it was) and ○ goes back to the selected game. */
+ * tab turns bold as always), ✕ on the cog wheel opens Settings, ↓ goes back down to where ↑ came from (in the Library
+ * that is always the Sort button, the first stop on the way up) and ○ goes back to the selected game. */
 static int update_top_bar(Ui *ui, const UiInput *in, float dt)
 {
     u32 ok = ui->confirm_circle ? PSP_CTRL_CIRCLE : PSP_CTRL_CROSS;
@@ -1023,8 +1011,9 @@ int ui_update(Ui *ui, const UiInput *in, float dt)
             sound_play(SND_SELECT);
         }
         move = 0;
-    } else if (grid && move == -2 && *sel < GRID_COLS) { /* ↑ from the first row: to the Sort button when it is above the card, else straight to the cog wheel */
-        if (count > 1 && sort_above(ui, *sel % GRID_COLS)) {
+    } else if (grid && move == -2 && *sel < GRID_COLS) { /* ↑ from any card of the first row: to the Sort button, the first stop on the way up (only when there is one:
+                                                          * with a single card there is no Sort button and ↑ goes straight to the cog wheel) */
+        if (count > 1) {
             ui->lib_focus = 1;
             sound_play(SND_MOVE);
         } else if (fresh) {
@@ -1143,7 +1132,10 @@ static void format_time(char *out, int size, float sec)
 
 #define TOP_MID     20.0f /* the middle of the clock row, where the wheel and the battery are centred: the cog wheel's frame goes round it */
 #define TOP_FRAME_H 24.0f /* (a tab's frame is centred on its text) */
-#define TOP_GAP     10.0f /* between the clock, the battery percentage and the battery */
+#define TOP_GAP     10.0f /* between the clock and what is left of it: the battery percentage, or the battery when there is no percentage */
+#define BAT_W       22.0f /* the battery: the body (20) and its terminal (2) */
+#define BAT_GAP      5.0f /* between the battery and the percentage next to it */
+#define COG_GAP     27.0f /* from the battery's left edge to the middle of the cog wheel; the charging bolt, which is left of the battery, fits between */
 
 static void draw_top_bar(Ui *ui)
 {
@@ -1171,20 +1163,20 @@ static void draw_top_bar(Ui *ui)
     int present = testrun_battery() >= 0 || sys_present;
     /* No battery in the PSP: no icon and no number, and the cog wheel stays where it is without the number. With a battery the icon
      * is drawn. "Show battery percentage" then keeps room for the widest number ("100%") all the time, so the battery and the cog
-     * wheel stay where they are while the level changes; the number is always TOP_GAP right of the battery, so with fewer digits it
+     * wheel stay where they are while the level changes; the number is always BAT_GAP right of the battery, so with fewer digits it
      * ends a little further from the clock. */
-    float shift = present && g_battery_pct ? ceilf(text_width(0.8f, 0, "100%")) + TOP_GAP : 0;
-    float bx = floorf(SCREEN_W - MARGIN - cw - 32 - shift + 0.5f); /* on a whole pixel, so the battery looks the same whatever the clock says */
+    float shift = present && g_battery_pct ? ceilf(text_width(0.8f, 0, "100%")) + BAT_GAP : 0;
+    float bx = floorf(SCREEN_W - MARGIN - cw - TOP_GAP - BAT_W - shift + 0.5f); /* on a whole pixel, so the battery looks the same whatever the clock says */
     if (present) {
         draw_battery(bx, 15, level, charging, ui->time, a);
         if (g_battery_pct && level >= 0) {
             char pct[8];
             snprintf(pct, sizeof(pct), "%d%%", level > 100 ? 100 : level);
-            text_draw(bx + 22 + TOP_GAP, 25, 0.8f, 0, with_alpha(TEXT_MAIN, a), ALIGN_LEFT, pct);
+            text_draw(bx + BAT_W + BAT_GAP, 25, 0.8f, 0, with_alpha(TEXT_MAIN, a), ALIGN_LEFT, pct);
         }
     }
     /* the cog wheel is a button too: selected (↑ from the first thing of a tab) it gets the frame of a chosen entry, like Sort */
-    float gx = bx - 22, cog = smooth(ui->top_anim[TOP_COG]);
+    float gx = bx - COG_GAP, cog = smooth(ui->top_anim[TOP_COG]);
     if (cog * a > 0.01f) {
         float fy, fh;
         popup_frame_around(TOP_MID, TOP_FRAME_H, &fy, &fh);
@@ -1196,7 +1188,7 @@ static void draw_top_bar(Ui *ui)
     static float size = 0.8f, gap = 20, sized_room = -1;
     static int sized_tab = -1;
     static const char *sized_lang;
-    float room = bx - 43 - MARGIN; /* the last tab's frame ends 3 px before the cog wheel's */
+    float room = bx - COG_GAP - 21 - MARGIN; /* the last tab's frame ends 3 px before the cog wheel's */
     int tabs[2], nt = top_tabs(ui, tabs); /* Games and Music, or only Library inside the Library */
     if (room != sized_room || ui->tab != sized_tab || L(TAB_NAMES[0]) != sized_lang) {
         size = 0.8f;

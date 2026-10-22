@@ -147,9 +147,12 @@ void gfx_init(void)
 
 static void icons_free(int only_unused);
 
+static void library_free(void);
+
 void gfx_term(void)
 {
     icons_free(0);
+    library_free();
     tex_free(s_disc);
     tex_free(s_soft);
     tex_free(s_ring);
@@ -663,6 +666,41 @@ void gfx_speaker(float x, float y, u32 color)
     gfx_quad(cone, cc);
 }
 
+/* The images of the Library picture, one for each height it has been drawn at. They are not in the cache above, which lets go of
+ * what was not used for a frame: the card goes through about twenty heights when it grows or shrinks, one new height per frame,
+ * and making an image is not something a frame can afford (icon_library_image has the ready-made ones for those heights, so
+ * here it is only a copy). They stay until gfx_term. */
+#define LIBRARY_MAX_H ICON_MAX
+static Texture *s_library[LIBRARY_MAX_H + 1];
+
+static void library_free(void)
+{
+    for (int i = 0; i <= LIBRARY_MAX_H; i++) {
+        tex_free(s_library[i]);
+        s_library[i] = NULL;
+    }
+}
+
+static const Texture *library_image(int ph, int pw)
+{
+    if (ph < 1 || ph > LIBRARY_MAX_H || pw > ICON_MAX)
+        return NULL;
+    if (!s_library[ph]) {
+        static unsigned char cov[ICON_MAX * ICON_MAX];
+        Texture *t = tex_create(pw, ph, GU_PSM_8888);
+        if (!t)
+            return NULL;
+        icon_library_image(ph, cov);
+        u32 *px = t->data;
+        for (int y = 0; y < ph; y++)
+            for (int x = 0; x < pw; x++)
+                px[y * t->stride + x] = RGBA(255, 255, 255, cov[y * pw + x]);
+        tex_flush(t);
+        s_library[ph] = t;
+    }
+    return s_library[ph];
+}
+
 /* The picture of the Library card, centred in the card box l, t, w, h. The size is a whole number of pixels (two thirds of the card's
  * height) and the picture is made for exactly that size, with its corner on a whole pixel, so nothing is ever blurred or shifted. */
 void gfx_library_icon(int l, int t, int w, int h, u32 color)
@@ -670,7 +708,7 @@ void gfx_library_icon(int l, int t, int w, int h, u32 color)
     int ph = (int)floorf(h * 0.66f + 0.5f), pw = icon_library_width(ph);
     int x = l + (w - pw + 1) / 2, y = t + (h - ph + 1) / 2;
     IconBox b = { pw, ph, x, y, pw / 2.0f, ph / 2.0f, 0, 0 };
-    const Texture *tex = ph > 0 ? icon_get(ICON_LIBRARY, (float)pw, (float)ph, 0, &b) : NULL;
+    const Texture *tex = library_image(ph, pw);
     if (tex) {
         icon_blit(tex, &b, color);
         return;

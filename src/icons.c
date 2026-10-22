@@ -138,6 +138,34 @@ int icon_library_width(int h)
     return (int)g.w;
 }
 
+#ifdef LIB_NO_BAKED /* (tools/gen_library_icons.py builds this file without the stored images, to make them) */
+#define LIB_BAKED_FIRST 1
+#define LIB_BAKED_LAST 0
+static const unsigned short lib_baked_start[1] = { 0 };
+static const unsigned char lib_baked[1] = { 0 };
+#else
+#include "libicon_data.inc"
+#endif
+
+int icon_library_baked(int h)
+{
+    return h >= LIB_BAKED_FIRST && h <= LIB_BAKED_LAST;
+}
+
+void icon_library_image(int h, unsigned char *out)
+{
+    int w = icon_library_width(h);
+    if (h < LIB_BAKED_FIRST || h > LIB_BAKED_LAST) {
+        icon_render(ICON_LIBRARY, (float)w, (float)h, 0, w / 2.0f, h / 2.0f, w, h, out);
+        return;
+    }
+    const unsigned char *p = lib_baked + lib_baked_start[h - LIB_BAKED_FIRST];
+    for (int n = 0; n < w * h; p += 2) { /* pairs: coverage, run */
+        memset(out + n, p[0], p[1]);
+        n += p[1];
+    }
+}
+
 typedef struct {
     int kind;
     float w, h, r;

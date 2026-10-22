@@ -69,7 +69,7 @@ On a PSP Go, psp5 looks in these folders on both the internal storage and a Memo
 | ↓ in Games | Select the Start and ⋯ (options) buttons under the game · ← → move between them · ↑ or ○ goes back |
 | L / R | Switch between Games and Music (not in the Library: ○ closes it) |
 | ✕ on the Library card (the last card of Games) | Open the Library: everything in a grid; the top bar shows only *Library* there |
-| ↑ from a first-row card under the Sort button in the Library | Select the Sort button · ✕ opens the sorting (the same in *Manage Saved Data*); from the other first-row cards ↑ goes straight to the cog wheel |
+| ↑ from any first-row card in the Library | Select the Sort button (always the first stop) · ✕ opens the sorting (the same in *Manage Saved Data*) · ↑ again goes to the cog wheel, ↓ from the cog wheel comes back to the Sort button |
 | ↑ from the first thing on a tab | Select the top bar: ← → between Games, Music and the cog wheel (in the Library only the cog wheel: the word *Library* is a title) · ✕ opens a tab, or the settings on the cog wheel · ↓ goes back down · ○ goes back to the selected game |
 | □ in Music | Pause / resume |
 | ← → in Music | Previous / next track · hold to seek |

@@ -48,6 +48,13 @@ typedef struct {
  * size: the caller asks for it with the whole-pixel w, h and places its top left corner on a whole pixel. */
 int icon_library_width(int h);
 
+/* The Library picture of height `h` as a coverage image (w * h bytes, w = icon_library_width(h)). The heights the Library card
+ * goes through are stored ready-made (libicon_data.inc, made by tools/gen_library_icons.py) because calculating one takes far
+ * too long while the card is growing; any other height is calculated (icon_render with ICON_LIBRARY gives the same image). */
+void icon_library_image(int h, unsigned char *out);
+/* 1 if the picture of height `h` is stored ready-made (for the host tests: the card's heights must all be) */
+int icon_library_baked(int h);
+
 /* The box for a shape centred on (cx, cy) on the screen. `w`, `h` are only used by ICON_RRECT and
  * the triangles (where they are the size of the triangle). */
 void icon_box(int kind, float cx, float cy, float w, float h, float r, IconBox *b);

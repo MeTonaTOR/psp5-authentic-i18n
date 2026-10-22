@@ -7,10 +7,14 @@ The newest version is on top. Changes that are not in a release yet are listed u
 
 - **Settings:** new switch **Show battery percentage** (Settings → psp5, under *Startup animation*), off by default. When it is on,
   the real battery level is shown as a number (for example *87%*), in the same font as the clock, between the clock and the
-  battery. The battery and the cog wheel move left to make room, and they stay exactly where they are at 100% whatever the level
+  battery. The number sits close to the battery (5 px), as a part of the battery icon, and the whole group sits close to the
+  clock. The battery and the cog wheel move left to make room, and they stay exactly where they are at 100% whatever the level
   is. The number always keeps the same distance from the battery, so when the level drops to two or one digits it only moves
   a little away from the clock. The tabs make room too (long languages shrink their tab names a little more). The switch is
   saved like the other psp5 settings.
+- **Top bar:** the cog wheel and its highlight are 5 px further from the battery, so the highlight no longer touches the charging
+  bolt that appears next to the battery while the PSP charges. With the battery percentage on, the cog wheel is where it was
+  (the battery moved 5 px to the right); with it off, the cog wheel is 5 px further left than before, and the tabs have 5 px less room.
 - **Top bar:** if the PSP has no battery, no battery icon and no number are shown at all (before, an empty battery was drawn).
   The cog wheel stays where it is.
 - **The Library is a card in Games now, not a tab.** The Library tab is gone from the top bar. In its place there is a **Library
@@ -29,6 +33,12 @@ The newest version is on top. Changes that are not in a release yet are listed u
 - **The Library card's picture is polished.** The game controller is now exactly the same on its left and on its right (before,
   the right side was cut off a little), and the picture is drawn the same way as the other icons of the app: on whole pixels, as
   one image. It no longer wiggles or changes its shape while the cards slide, and it looks the same wherever the card is.
+- **The Library card no longer stutters** just before it grows into the big card. The picture on it was calculated again for
+  every size it passed on the way, which a PSP could not do fast enough (it was measured on a PC only, not on a PSP). The pictures
+  for all the sizes the card goes through are now ready-made and are only drawn.
+- **In the Library, ↑ always goes to the Sort button first**, from every card of the first row (before, only from the cards right
+  under it; the others went straight to the cog wheel). ↑ again goes to the cog wheel, and ↓ from the cog wheel comes back to the Sort
+  button (when the Library has no Sort button, to the card as before).
 - START on the Library card opens a popup with only **Pin to Home** / **Unpin from Home**.
 - With no games on the card at all, the note *No games found* and the hints where to put them are shown under the Library card
   (the old "Home is empty" note is gone, Home always has the Library card).

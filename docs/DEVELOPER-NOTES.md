@@ -28,22 +28,58 @@ All changes after 1.0.0 are noted here (and under *Unreleased* in `CHANGELOG.md`
   (`batterypct=0|1` in `psp5.cfg`, default 0; `config_load` only changes it when the line is there, so a file from 1.0.0 keeps it
   off). `settings.c` adds the toggle after "Startup animation" (`own = 1`, so it is saved by `settings_commit`); label
   `S_BATTERY_PCT` in all 11 languages (the string table has 164 rows now). `draw_top_bar` (`ui.c`): with the setting on and a
-  battery present, `shift = ceilf(text_width(0.8, "100%")) + TOP_GAP` (`TOP_GAP` = 10 px) is always reserved, whatever the level, so
-  `bx = floorf(SCREEN_W - MARGIN - clock_w - 32 - shift + 0.5)` (the battery) and everything that follows it (the cog wheel and
-  its frame, the tab `room`, the music-note line) stay put while the level changes. The level (`"%d%%"`, capped at 100, from
+  battery present, `shift = ceilf(text_width(0.8, "100%")) + BAT_GAP` (`BAT_GAP` = 5 px) is always reserved, whatever the level, so
+  `bx = floorf(SCREEN_W - MARGIN - clock_w - TOP_GAP - BAT_W - shift + 0.5)` (the battery; `TOP_GAP` 10, `BAT_W` 22) and everything
+  that follows it (the cog wheel and its frame, the tab `room`, the music-note line) stay put while the level changes. The level (`"%d%%"`, capped at 100, from
   `scePowerGetBatteryLifePercent()` through the once-a-second poll that already fed the icon, or the test-run override) is drawn
-  at size 0.8, `ALIGN_LEFT` at `bx + 22 + TOP_GAP`, i.e. always 10 px after the end of the battery; with fewer digits its right
+  at size 0.8, `ALIGN_LEFT` at `bx + BAT_W + BAT_GAP`, i.e. always 5 px after the end of the battery; with fewer digits its right
   end is further from the clock. It is only drawn when the level is known (`level >= 0`); the room stays reserved then.
-  The tabs shrink with the same rule as before (`room = bx - 43 - MARGIN`, smallest size 0.56).
+  The tabs shrink with the same rule as before (`room = bx - COG_GAP - 21 - MARGIN`, smallest size 0.56).
 - **Top bar without a battery** (`ui.c`): the poll keeps `sys_present` (`scePowerIsBatteryExist()`; the test-run battery counts as
   present). Without a battery `draw_battery` is not called at all (before it drew the empty outline) and no number is drawn; `bx`
   is the position without the number (`shift = 0`), so the cog wheel does not move.
   Tests (`host-tests`, not in git): `units/config_test.c` (new; file round trip, old file, defaults, runner entry `pcfg`),
-  `ui/menu_test.c` (levels 100/80/55/10/5/0/150: battery and cog wheel at the same place, number 10 px after the battery, only the
+  `ui/menu_test.c` (levels 100/80/55/10/5/0/150: battery and cog wheel at the same place, number 5 px after the battery, only the
   space to the clock grows; no battery with the switch on and off: no bright pixel in the battery's place, cog wheel where it was;
   level unknown; the tabs for three levels in all 11 languages), `settings/settings_test.c` (the toggle sits under Startup
   animation, toggles with ✕, is saved once), `ui/stubs.c`, `ui/popup_sig.h` (records the text of a drawing call). The test font is
   as wide at every size, so a language whose tabs are at the smallest size in the test (Japanese with "100%") is not measured there.
+
+- **Top bar: the number closer to the battery, the cog wheel further from it** (`ui.c`): `TOP_GAP` (clock to what is left of it, 10),
+  `BAT_W` (battery body 20 + terminal 2), `BAT_GAP` (battery to its number, was 10, now 5) and `COG_GAP` (battery's left edge to the
+  cog wheel's centre, was 22, now 27) replace the literals 32 / 22 / 10 in `draw_top_bar`. `gx = bx - COG_GAP`, tab
+  `room = bx - COG_GAP - 21 - MARGIN`. The group (battery + number) sits 5 px closer to the clock, so with the percentage on the cog
+  wheel ends where it was (`bx` +5, `COG_GAP` +5); with it off `bx` is unchanged and the cog wheel is 5 px further left. Reason for
+  `COG_GAP`: `draw_battery` draws the charging bolt at `gfx_bolt(x - 6, y + 5, 5)` (about x - 8.5 .. x - 3.5), and the frame of the cog
+  wheel (`popup_choice(gx - 15, ..., 30, ...)`, right edge at `bx - 7` before) overlapped it; now the frame ends at `bx - 12`.
+  Tests (`host-tests/ui/menu_test.c`): the geometry checks use 27 / 5 / 48 (tab text ends 48 px before the battery); new
+  charging check (`g_stub_battery_charging` in `ui/stubs.c`): the pixels of the bolt are the same with the cog wheel selected and
+  not, number on and off (it fails with `COG_GAP` 22).
+
+- **The Library card does not calculate its picture while it grows** (`icons.c/.h`, `libicon_data.inc`, `tools/gen_library_icons.py`,
+  `gfx.c`): while the Library card went from its small size to the big card, every frame had a new card height (33 .. 62) and so a
+  new picture height (22 .. 41), and `ICON_LIBRARY` was rendered by the CPU for each one (`icon_render`: 4 x 4 supersampled below 32 px,
+  2 - 4 ms on a PC, 25 - 40 times more on a PSP) - the stutter just before the card enlarged. Now
+  - `src/libicon_data.inc` (generated, do not edit): the picture for the heights 21 .. 42 (`LIB_BAKED_FIRST/LAST`), run-length coded as
+    (coverage, run) pairs, 9972 bytes in `lib_baked` with `lib_baked_start[]`. `tools/gen_library_icons.py` makes it: it compiles
+    `icons.c` with `-DLIB_NO_BAKED` (an empty table), renders the heights through `icon_render` with ctypes and writes the file; run it
+    again whenever the picture or the card's sizes change (`librarytest.py` checks that the file is up to date).
+  - `icon_library_image(h, out)` decodes the table (and calculates a height that is not in it), `icon_library_baked(h)` says if
+    it is there.
+  - `gfx.c`: the Library picture no longer goes through the evicting icon cache (which freed images that were not used in the last
+    frame): `s_library[LIBRARY_MAX_H + 1]` is a pool with one texture per picture height, kept until `gfx_term` (`library_free`), so
+    each height is made once, from the table, and never calculated while sliding. A height that is not in the table is still
+    calculated the first time it is needed.
+  - Measured on a PC only (not on a PSP): no `ICON_LIBRARY` render in the frames of the slide.
+  - Tests (`host-tests`, not in git): `icons/librarytest.py` (baked == calculated for h 1 .. 96), `gfx/gfxtest.c` (every card height
+    32 .. 63 is baked; a height that is not baked still draws), `ui/menu_test.c` (the sliding card test checks that the picture is
+    baked at each frame).
+
+- **Library: ↑ goes to the Sort button first from every card of the first row** (`ui.c`): `sort_above()` (was: the card is
+  under the Sort button) is removed. In the grid, `move == -2 && *sel < GRID_COLS` selects the Sort button (`lib_focus = 1`) when
+  the Library has more than one entry, otherwise (nothing to sort) goes to the cog wheel as before (`enter_top_bar(ui, TOP_COG)`).
+  ↑ from the Sort button and ↓ from the cog wheel are unchanged. README and INSTALL updated.
+  Tests: `ui/menu_test.c` (first card, last first-row card, per-language loop) and `ui/pixel_test.c` (first card -> Sort button).
 
 - **Manage Saved Data: the Sort button and its popup line up with the rows** (`saves.c`): the frame of the Sort button starts at
   `LIST_X`, the same left edge as a row's highlight, and the text 9 px in, at the new `SORT_X` (`LIST_X + 9`), one pixel right
@@ -65,9 +101,9 @@ All changes after 1.0.0 are noted here (and under *Unreleased* in `CHANGELOG.md`
     (squares minus the controller dilated by the rim) united with the controller minus the arch, so the rim cut and the arch need
     no colour of the card and the picture can be translucent without seams. Below 32 px it is sampled 4 x 4 (`fine`).
   - `gfx_library_icon(l, t, w, h, color)` in `gfx.c`: picture height `floorf(h * 0.66 + 0.5)`, centred in the card's whole-pixel box
-    (`(w - pw + 1) / 2`), one cached white alpha image per height (`cache_get`, key kind/`w4`/`h4`, phase 0), drawn with `icon_blit`
-    (`GU_NEAREST`, pixel for pixel) like the note and the speaker; if the cache has no room it falls back to plain rounded squares
-    and a body. Only the card's size changes the picture, never its position, and the image for a size is always the same.
+    (`(w - pw + 1) / 2`), one white alpha image per height (from `icon_library_image`; its own pool, see "The Library card does
+    not calculate its picture while it grows"), drawn with `icon_blit` (`GU_NEAREST`, pixel for pixel) like the note and the
+    speaker; if there is no image it falls back to plain rounded squares and a body. Only the card's size changes the picture, never its position, and the image for a size is always the same.
   - `draw_card` had a local `float b` (the placeholder's breathing) that shadowed the new `int b` of the card box; renamed `breath`.
   - `update_top_bar`: inside the Library the word is not selectable (see "Tabs" below).
   - Tests (`host-tests`, not in git): `icons/librarytest.py` (new; every height 12..96: whole-pixel edges, three equal squares at
