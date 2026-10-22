@@ -310,8 +310,7 @@ Settings → psp5 → Language (saved in `ms0:/PSP5/psp5.cfg`).
 The interface sounds are WAV files in `PSP5/sounds/` on the storage (`move`, `select`, `back`, `error`, `boot`; 44.1 kHz,
 16 bit; the zips contain them). If a file is missing, psp5 plays the built-in sound with the same name – they are calculated
 in `src/sound.c`, no sound files are needed. `tools/convert_sounds.py` converts your own recordings to the right format.
-On/off under Settings → psp5 → Interface sounds (saved in `ms0:/PSP5/psp5.cfg`). WAV previews of the built-in sounds are in
-`docs/sounds/`.
+On/off under Settings → psp5 → Interface sounds (saved in `ms0:/PSP5/psp5.cfg`).
 
 ## Settings (the cog wheel)
 Laid out like a console's settings pages, and reads/writes the same files as arkMenu:
