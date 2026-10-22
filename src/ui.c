@@ -22,6 +22,7 @@
 #include "gameops.h"
 #include "home.h"
 #include "popup.h"
+#include "config.h"
 #include "testrun.h"
 
 /* layout (480×272) */
@@ -1063,6 +1064,7 @@ static void format_time(char *out, int size, float sec)
 
 #define TOP_MID     20.0f /* the middle of the clock row, where the wheel and the battery are centred: the cog wheel's frame goes round it */
 #define TOP_FRAME_H 24.0f /* (a tab's frame is centred on its text) */
+#define TOP_GAP     10.0f /* between the clock, the battery percentage and the battery */
 
 static void draw_top_bar(Ui *ui)
 {
@@ -1084,9 +1086,19 @@ static void draw_top_bar(Ui *ui)
     }
     text_draw(SCREEN_W - MARGIN, 25, 0.8f, 0, with_alpha(TEXT_MAIN, a), ALIGN_RIGHT, clock_text);
     float cw = text_width(0.8f, 0, clock_text);
-    float bx = floorf(SCREEN_W - MARGIN - cw - 32 + 0.5f); /* on a whole pixel, so the battery looks the same whatever the clock says */
     int charging = testrun_charging() >= 0 ? testrun_charging() : sys_charging;
     int level = testrun_battery() >= 0 ? testrun_battery() : sys_level;
+    /* "Show battery percentage": the real level as a number, in the clock's font, in the place the battery had (10 px from
+     * the clock); the battery and the cog wheel move to the left by its width and another 10 px. Without a battery (level
+     * below 0) there is nothing to show and nothing moves. */
+    float shift = 0;
+    if (g_battery_pct && level >= 0) {
+        char pct[8];
+        snprintf(pct, sizeof(pct), "%d%%", level > 100 ? 100 : level);
+        text_draw(SCREEN_W - MARGIN - cw - TOP_GAP, 25, 0.8f, 0, with_alpha(TEXT_MAIN, a), ALIGN_RIGHT, pct);
+        shift = ceilf(text_width(0.8f, 0, pct)) + TOP_GAP;
+    }
+    float bx = floorf(SCREEN_W - MARGIN - cw - 32 - shift + 0.5f); /* on a whole pixel, so the battery looks the same whatever the clock says */
     draw_battery(bx, 15, level, charging, ui->time, a);
     /* the cog wheel is a button too: selected (↑ from the first thing of a tab) it gets the frame of a chosen entry, like Sort */
     float gx = bx - 22, cog = smooth(ui->top_anim[TOP_COG]);

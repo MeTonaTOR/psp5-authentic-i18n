@@ -253,6 +253,10 @@ static const char *const T[S_COUNT][NL] = {
     [S_BOOT_ANIM] = { "Startup animation", "Startanimation", "Startanimation", "Animation de démarrage",
                       "Animación de inicio", "Animazione di avvio", "Opstartanimatie", "Animação de arranque",
                       "Заставка при запуске", "起動アニメーション", "Úvodní animace" },
+    [S_BATTERY_PCT] = { "Show battery percentage", "Visa batteriprocent", "Akkustand in Prozent anzeigen",
+                        "Afficher le pourcentage de batterie", "Mostrar porcentaje de batería",
+                        "Mostra percentuale batteria", "Batterijpercentage tonen", "Mostrar percentagem da bateria",
+                        "Показывать заряд в процентах", "バッテリー残量をパーセント表示", "Zobrazit procenta baterie" },
     /* hälsovarningen på startskärmen – rader skiljs med \n */
     [S_HEALTH] = { "PHOTOSENSITIVITY WARNING: SOME PEOPLE MAY HAVE SEIZURES WHEN EXPOSED TO FLASHING LIGHTS\n"
                    "OR PATTERNS, EVEN WITHOUT ANY HISTORY OF EPILEPSY. IF YOU FEEL UNWELL WHILE PLAYING,\n"

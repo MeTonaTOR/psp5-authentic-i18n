@@ -24,6 +24,21 @@ into psp5 instead of the XMB.
 
 All changes after 1.0.0 are noted here (and under *Unreleased* in `CHANGELOG.md`) until the next version is released.
 
+- **Settings → psp5 → Show battery percentage** (`config.c`, `settings.c`, `ui.c`, `lang.c`): new own setting `g_battery_pct`
+  (`batterypct=0|1` in `psp5.cfg`, default 0; `config_load` only changes it when the line is there, so a file from 1.0.0 keeps it
+  off). `settings.c` adds the toggle after "Startup animation" (`own = 1`, so it is saved by `settings_commit`); label
+  `S_BATTERY_PCT` in all 11 languages (the string table has 164 rows now). `draw_top_bar` (`ui.c`): when the setting is on and the
+  level is known (`level >= 0`, from `scePowerGetBatteryLifePercent()` through the once-a-second poll that already fed the
+  battery icon, or the test-run override), it draws `"%d%%"` (level capped at 100) at size 0.8, right-aligned `TOP_GAP`
+  (10 px) left of the clock, and `shift = ceilf(width) + TOP_GAP`. The battery is at
+  `floorf(SCREEN_W - MARGIN - clock_w - 32 - shift + 0.5)` and the cog wheel, its frame, the tab `room` and the music-note line
+  all follow `bx`, so nothing else had to change. The tabs shrink with the same rule as before (`room = bx - 43 - MARGIN`,
+  smallest size 0.56). The layout moves when the number gains or loses a digit (100 → 99, 10 → 9), because the number is only as
+  wide as it is. Tests (`host-tests`, not in git): `units/config_test.c` (new; file round trip, old file, defaults, runner entry
+  `pcfg`), `ui/menu_test.c` (text, font, colour and place for levels 80/100/5/0/150, no battery, level -1, shift of the battery
+  and the cog wheel, the tabs for three levels in all 11 languages), `settings/settings_test.c` (the toggle sits under Startup
+  animation, toggles with ✕, is saved once), `ui/stubs.c`, `ui/popup_sig.h` (records the text of a drawing call). The test font is
+  as wide at every size, so a language whose tabs are at the smallest size in the test (Japanese with "100%") is not measured there.
 - **Manage Saved Data: the Sort button and its popup line up with the rows** (`saves.c`): the frame of the Sort button starts at
   `LIST_X`, the same left edge as a row's highlight, and the text 9 px in, at the new `SORT_X` (`LIST_X + 9`), one pixel right
   of the rows' circles, check marks and padlocks (`ROW_ICON_X`, `LIST_X + 8`, new, `draw_rows` uses it). Before: text at
@@ -321,7 +336,7 @@ On/off under Settings → psp5 → Interface sounds (saved in `ms0:/PSP5/psp5.cf
 
 ## Settings (the cog wheel)
 Laid out like a console's settings pages, and reads/writes the same files as arkMenu:
-- **psp5:** autoboot, interface sounds, startup animation, language, clear image cache, version
+- **psp5:** autoboot, interface sounds, startup animation, show battery percentage, language, clear image cache, version
 - **Performance:** CPU in games / XMB, extra memory, memory stick cache, ISO cache
 - **System:** USB charging, WPA2, logos, hide pictures/MAC/DLC, lights, UMD, analog stick, regions and more
 - **Plugins:** switch rows in `ARK_01234/PLUGINS.TXT` and `SEPLUGINS/PLUGINS.TXT` on/off

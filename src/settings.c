@@ -191,6 +191,8 @@ static void build(int rebuild)
     c->items[c->count - 1].own = 1;
     toggle(c, L(S_BOOT_ANIM), &g_boot_anim);
     c->items[c->count - 1].own = 1;
+    toggle(c, L(S_BATTERY_PCT), &g_battery_pct);
+    c->items[c->count - 1].own = 1;
     choice(c, L(S_LANGUAGE), &g_lang_setting, OPT_LANG, LANG_COUNT);
     c->items[c->count - 1].own = 1;
     info(c, L(S_IS_LAUNCHER), L(sys_is_launcher() ? S_YES : S_NO));

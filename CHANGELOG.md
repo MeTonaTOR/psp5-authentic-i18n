@@ -5,6 +5,11 @@ The newest version is on top. Changes that are not in a release yet are listed u
 
 ## Unreleased
 
+- **Settings:** new switch **Show battery percentage** (Settings → psp5, under *Startup animation*), off by default. When it is on,
+  the real battery level is shown as a number (for example *87%*), in the same font as the clock, between the clock and the
+  battery. The battery and the cog wheel move to the left to make room for it, and the tabs make room too (long languages
+  shrink their tab names a little more). If the PSP reports no battery, no number is shown and nothing moves. The switch is saved
+  like the other psp5 settings.
 - **Manage Saved Data:** the **Sort** button and the popup that opens under it moved 4 px to the left. The frame now starts at
   the same edge as the highlight of a save, and the text sits right above the circles of the saves.
 
