@@ -5,7 +5,7 @@ goal of the fork is to be as authentic as possible to its home console counterpa
 change touches in the code. The list for users is in [`CHANGELOG.md`](../CHANGELOG.md). The older sections at the bottom
 (1.5.2 and earlier) are the original project's own history; they were written in Swedish and have been translated.
 
-A dark launcher with a row of game cards, the game's picture as the background, and tabs for games (Home) and library.
+A dark launcher with a row of game cards, the game's picture as the background, and tabs for games (Home) and music; the library is a card of Home.
 All graphics are its own. The launcher is a normal app in `ms0:/PSP/GAME/PSP5` and never touches flash0, so the XMB is
 always still there (HOME in psp5 = back to the XMB).
 
@@ -52,6 +52,42 @@ All changes after 1.0.0 are noted here (and under *Unreleased* in `CHANGELOG.md`
   `draw_header` draws the frame at `sort_x - 9`, so it keeps 9 px round the text and the same width. `draw_sort_menu` draws the
   popup at `LIST_X` (before `LIST_X + 4`). Not moved: the title. Tested in `host-tests/saves/saves_test.c` (in all 11 languages:
   the text is at `SORT_X`, the frame at `LIST_X` with 9 px round the text; the popup starts at `LIST_X`).
+
+- **The Library is a card of Home, not a tab** (`home.c/.h`, `ui.c/.h`, `loader.c/.h`, `lang.c/.h`):
+  - *Model.* `views[TAB_GAMES].idx` may now hold the sentinel `HOME_LIBRARY` (-3; -1 and -2 are the "none" / "not known yet" values
+    `label_for`, `lib_label_for` and `cover_for` use) besides list indices. `home_build` puts the disc first, then the pinned cards
+    in pin order (the Library card among them when it is pinned, key `?library` in `home.txt`; `?` cannot be in a file name),
+    then the recents, and the Library card last when it is not pinned. `HOME_MAX` stays 10 and counts the Library card
+    (`room = HOME_MAX - (library pinned ? 0 : 1)` while the others are placed); `HOME_PIN_MAX` is 8 (games only, `game_pins()`).
+    `PIN_KEEP` (9) is how many game pins `load_file` still accepts, so a `home.txt` of 1.0.0 with nine pins keeps them all;
+    `home_pin` refuses a new pin at 8 (toast `S_HOME_PIN_LIMIT` with `HOME_PIN_MAX`). `prune` never drops `?library`, `home_state`
+    skips the sentinel, and when no keys can be made `home_build` still returns the Library card. New: `home_library_pinned`,
+    `home_pin_library`, `home_unpin_library`.
+  - *Tabs.* `enum { TAB_GAMES, TAB_MUSIC, TAB_LIBRARY, TAB_COUNT }`: the Library is not in the bar any more, it is the state
+    `ui->tab == TAB_LIBRARY` that `open_library` (✕ on the card or on Open, via `activate_card`) enters and `close_library` (the back
+    button - ○, or ✕ with ○ as confirm - on a card of the grid, also when the Library is empty) leaves; both go through
+    `set_tab`. `switch_tab` (L/R and ✕ on a tab) only moves between Games and Music. `top_tabs()` gives the tabs of the bar
+    ({Games, Music}, or {Library} inside the Library) and `update_top_bar`, `draw_top_bar` and the tab-fit code use it, so the
+    Library's single tab is drawn bold where Games is, framed like any tab when selected. `sel_card()` returns the raw entry of
+    the selected card, `ui_selected()` returns -1 for the Library card (so `main.c` never starts or deletes it), `remap_index`
+    keeps the sentinel, `build_views` asks `home_build` for `count + 1` places, `loader.c` skips negative indices
+    (`load_icon_near`, `loader_focus`).
+  - *Card.* `draw_card` has a branch for `HOME_LIBRARY`: an opaque card in `theme_cur()->card` (the colour of a game without a
+    picture; the placeholder is slightly transparent, this one has to hide the squares behind the controller's rim) and
+    `draw_library_icon`: six rounded squares (19 on a pitch of 25) and the controller (body, two shoulders, two grips and an arch
+    carved in the card's colour), in a design box of 83 x 77 scaled to 66 % of the card's height with `PX(u) = floorf(u * k + 0.5)`
+    so that every edge is on a whole pixel; the controller has a rim of the card's colour that cuts the squares. The picture is
+    opaque while the card is at rest (a translucent colour showed brighter seams where parts overlap) and dims like a cover when
+    the card is not selected (200 to 255). Nothing from the console is used: it is all `gfx_round_rect`.
+  - *Under the card.* `fit_label` gives the title `S_TAB_LIBRARY` without a type tag, the Start button reads `S_F_OPEN`, ✕ on it
+    does the same as ✕ on the card. START / ⋯ open a popup with one choice (`MI_PIN` or `MI_UNPIN`, `home_do`), toast
+    `S_HOME_PINNED` / `S_HOME_UNPINNED`. `draw_empty` is only the *No games found* note and the two hints, shown under the Library
+    card when the list has no games (and in an empty Library); `S_HOME_EMPTY` and `S_HOME_EMPTY_HINT` were not used any more and
+    are removed (the string table has 162 rows).
+  - *Tests* (`host-tests`, not in git): `home/home_test.c` (the Library card at the end, pinned first, 10 cards, 8 pins, legacy
+    9 pins, random operations with the Library card), `ui/menu_test.c` (new tab order, the Library card section, per-language
+    checks of the title, the Open button, the one-tab top bar and the hint, the card's colour and picture in four themes at both
+    sizes), `ui/pixel_test.c` (the Library card at rest, pinned, empty Home, Library top bar), `ui/drive.c`, `run_all.sh` (162 strings).
 
 ## Version 1.0.0 (psp5-authentic)
 

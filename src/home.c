@@ -10,10 +10,13 @@
 
 #define KEY_LEN     80 /* as entry_cover_key() callers have always used */
 #define HISTORY_MAX 40 /* cards remembered as opened; Home shows the first ones of them */
+#define LIBRARY_KEY "?library" /* the Library card in the list of pinned cards ('?' cannot be in a file name) */
+#define PIN_KEEP    9          /* a home.txt of 1.0.0 may pin nine games: they are all kept, only new pins stop at HOME_PIN_MAX */
+#define PIN_SLOTS   (PIN_KEEP + 1) /* ... and the Library card */
 
 typedef char Key[KEY_LEN];
 
-static Key s_pinned[HOME_PIN_MAX];
+static Key s_pinned[PIN_SLOTS];
 static int s_npinned;
 static Key s_recent[HISTORY_MAX]; /* newest first; may hold pinned cards too, so that unpinning puts a card back where it belongs */
 static int s_nrecent;
@@ -52,6 +55,12 @@ static void key_of(const Entry *e, char *out)
     entry_cover_key(e, out, KEY_LEN);
 }
 
+/* how many games are pinned (the Library card is not one of them) */
+static int game_pins(void)
+{
+    return s_npinned - (find_key(s_pinned, s_npinned, LIBRARY_KEY) >= 0);
+}
+
 /* --- the file --- */
 
 static void file_path(char *out, int size)
@@ -60,7 +69,7 @@ static void file_path(char *out, int size)
 }
 
 /* one line per card: "pin <key>" or "recent <key>" */
-static char s_text[(HOME_PIN_MAX + HISTORY_MAX) * (KEY_LEN + 8) + 16];
+static char s_text[(PIN_SLOTS + HISTORY_MAX) * (KEY_LEN + 8) + 16];
 
 static void save(void)
 {
@@ -96,7 +105,8 @@ static int load_file(void)
         *end = 0;
         if (end > line && end[-1] == '\r')
             end[-1] = 0;
-        if (!strncmp(line, "pin ", 4) && line[4] && s_npinned < HOME_PIN_MAX && find_key(s_pinned, s_npinned, line + 4) < 0)
+        if (!strncmp(line, "pin ", 4) && line[4] && s_npinned < PIN_SLOTS && find_key(s_pinned, s_npinned, line + 4) < 0 &&
+            (!strcmp(line + 4, LIBRARY_KEY) || game_pins() < PIN_KEEP))
             snprintf(s_pinned[s_npinned++], KEY_LEN, "%s", line + 4);
         else if (!strncmp(line, "recent ", 7) && line[7] && s_nrecent < HISTORY_MAX && find_key(s_recent, s_nrecent, line + 7) < 0)
             snprintf(s_recent[s_nrecent++], KEY_LEN, "%s", line + 7);
@@ -173,7 +183,7 @@ static void prune(const EntryList *list)
         any |= list->items[i].type != ENTRY_UMD;
     if (any) { /* an empty list means the card could not be read: keep what is remembered */
         for (int i = s_npinned - 1; i >= 0; i--)
-            if (find_entry(list, keys, s_pinned[i]) < 0)
+            if (strcmp(s_pinned[i], LIBRARY_KEY) && find_entry(list, keys, s_pinned[i]) < 0)
                 drop_at(s_pinned, &s_npinned, i);
         for (int i = s_nrecent - 1; i >= 0; i--)
             if (find_entry(list, keys, s_recent[i]) < 0)
@@ -199,11 +209,20 @@ int home_build(const EntryList *list, int *out, int max)
             out[n++] = i; /* the disc, first and outside the count */
             break;
         }
+    int lib_pinned = find_key(s_pinned, s_npinned, LIBRARY_KEY) >= 0;
     Key *keys = list_keys(list);
-    if (!keys)
+    if (!keys) {
+        if (n < max)
+            out[n++] = HOME_LIBRARY; /* the Library card is always there */
         return n;
-    int room = HOME_MAX;
+    }
+    int room = HOME_MAX - (lib_pinned ? 0 : 1); /* an unpinned Library card keeps its place at the end */
     for (int i = 0; i < s_npinned && room > 0 && n < max; i++) {
+        if (!strcmp(s_pinned[i], LIBRARY_KEY)) {
+            out[n++] = HOME_LIBRARY;
+            room--;
+            continue;
+        }
         int at = find_entry(list, keys, s_pinned[i]);
         if (at >= 0) {
             out[n++] = at;
@@ -220,6 +239,8 @@ int home_build(const EntryList *list, int *out, int max)
         }
     }
     free(keys);
+    if (!lib_pinned && n < max)
+        out[n++] = HOME_LIBRARY;
     return n;
 }
 
@@ -237,7 +258,7 @@ int home_state(const EntryList *list, int index)
     int n = home_build(list, shown, HOME_MAX + 1);
     Key *keys = list_keys(list);
     for (int i = 0; keys && i < n; i++)
-        if (!strcmp(keys[shown[i]], key))
+        if (shown[i] >= 0 && !strcmp(keys[shown[i]], key))
             state |= HOME_SHOWN;
     free(keys);
     return state;
@@ -283,7 +304,7 @@ int home_pin(const Entry *e)
     key_of(e, key);
     if (find_key(s_pinned, s_npinned, key) >= 0)
         return 1;
-    if (s_npinned >= HOME_PIN_MAX)
+    if (game_pins() >= HOME_PIN_MAX)
         return 0;
     if (find_key(s_recent, s_nrecent, key) < 0)
         push_front(s_recent, &s_nrecent, HISTORY_MAX, key); /* so that unpinning leaves it on Home */
@@ -299,6 +320,28 @@ void home_unpin(const Entry *e)
         return;
     key_of(e, key);
     int i = find_key(s_pinned, s_npinned, key);
+    if (i < 0)
+        return;
+    drop_at(s_pinned, &s_npinned, i);
+    save();
+}
+
+int home_library_pinned(void)
+{
+    return find_key(s_pinned, s_npinned, LIBRARY_KEY) >= 0;
+}
+
+void home_pin_library(void)
+{
+    if (home_library_pinned() || s_npinned >= PIN_SLOTS)
+        return;
+    snprintf(s_pinned[s_npinned++], KEY_LEN, "%s", LIBRARY_KEY);
+    save();
+}
+
+void home_unpin_library(void)
+{
+    int i = find_key(s_pinned, s_npinned, LIBRARY_KEY);
     if (i < 0)
         return;
     drop_at(s_pinned, &s_npinned, i);

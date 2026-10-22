@@ -44,7 +44,7 @@ static int load_icon_near(int range)
             if (p < 0 || p >= v->count)
                 continue;
             int i = v->idx[p];
-            if (s_slots[i].state != SLOT_EMPTY)
+            if (i < 0 || s_slots[i].state != SLOT_EMPTY) /* (the Library card has no icon to load) */
                 continue;
             s_slots[i].state = SLOT_LOADING;
             Texture *t = art_load_icon(&s_list->items[i]);
@@ -164,7 +164,7 @@ void loader_focus(int view_pos)
 
     memset(s_keep, 0, s_list->count);
     for (int p = view_pos - KEEP_RANGE; p <= view_pos + KEEP_RANGE; p++)
-        if (p >= 0 && p < v->count)
+        if (p >= 0 && p < v->count && v->idx[p] >= 0)
             s_keep[v->idx[p]] = 1;
 
     for (int i = 0; i < s_list->count; i++) {

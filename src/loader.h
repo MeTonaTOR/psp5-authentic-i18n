@@ -13,7 +13,8 @@ typedef struct {
     float shown; /* 0→1, för intoning (används av UI:t) */
 } IconSlot;
 
-/* En flik: index i spellistan i visningsordning. Måste leva tills loader_stop. */
+/* En flik: index i spellistan i visningsordning (a negative one is not a game: the Library card, which has no icon).
+ * Måste leva tills loader_stop. */
 typedef struct {
     int *idx;
     int count;

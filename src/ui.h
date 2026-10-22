@@ -8,8 +8,10 @@
 
 enum { UI_NONE, UI_LAUNCH, UI_SETTINGS, UI_INFO, UI_DELETE, UI_SAVES,
        UI_SLEEP, UI_SHUTDOWN, UI_RESTART, UI_RECOVERY /* the power popup of the SELECT button */ };
-/* Games is Home (home.h): the pinned cards and the ones opened last. Library shows everything. */
-enum { TAB_GAMES, TAB_LIBRARY, TAB_MUSIC, TAB_COUNT };
+/* Games is Home (home.h): the pinned cards, the ones opened last and, at the far right, the Library card. Music has the music.
+ * Library is not a tab of the top bar: it is a screen of its own that the Library card opens (✕) and ○ closes. It shows everything,
+ * and while it is open the top bar has only "Library" in it, in the place of Games. */
+enum { TAB_GAMES, TAB_MUSIC, TAB_LIBRARY, TAB_COUNT };
 /* what the top bar can have selected (Ui.top_focus): a tab (0 .. TAB_COUNT - 1) or the cog wheel */
 enum { TOP_COG = TAB_COUNT };
 
@@ -36,7 +38,7 @@ typedef struct {
 
 typedef struct {
     const EntryList *list;
-    LoaderView views[TAB_COUNT]; /* Spel (Home) / Bibliotek (Musik har egen lista, se music.h) */
+    LoaderView views[TAB_COUNT]; /* Spel (Home; with the Library card as HOME_LIBRARY) / Bibliotek (Musik har egen lista, se music.h) */
     int tab;
     int sel[TAB_COUNT];  /* position i respektive flik */
     float pos;           /* animerad scrollposition i aktiv flik */

@@ -70,7 +70,7 @@
 #define LIGHT       RGBA(238, 238, 242, 255)
 #define DARK        RGBA(18, 18, 22, 255)
 
-static const StrId TAB_NAMES[TAB_COUNT] = { S_TAB_GAMES, S_TAB_LIBRARY, S_TAB_MUSIC };
+static const StrId TAB_NAMES[TAB_COUNT] = { S_TAB_GAMES, S_TAB_MUSIC, S_TAB_LIBRARY };
 
 static float clampf(float v, float lo, float hi) { return v < lo ? lo : v > hi ? hi : v; }
 static float lerpf(float a, float b, float t) { return a + (b - a) * t; }
@@ -100,10 +100,29 @@ static const LoaderView *view(const Ui *ui)
     return &ui->views[ui->tab];
 }
 
-int ui_selected(const Ui *ui)
+/* The card the selection is on: an index in the game list, HOME_LIBRARY for the Library card of Games, -1 for none */
+static int sel_card(const Ui *ui)
 {
     const LoaderView *v = view(ui);
     return v->count ? v->idx[ui->sel[ui->tab]] : -1;
+}
+
+int ui_selected(const Ui *ui)
+{
+    int i = sel_card(ui);
+    return i >= 0 ? i : -1; /* (the Library card is not a game) */
+}
+
+/* The tabs the top bar shows, left to right: Games and Music; inside the Library only "Library", where Games would be */
+static int top_tabs(const Ui *ui, int out[2])
+{
+    if (ui->tab == TAB_LIBRARY) {
+        out[0] = TAB_LIBRARY;
+        return 1;
+    }
+    out[0] = TAB_GAMES;
+    out[1] = TAB_MUSIC;
+    return 2;
 }
 
 /* biblioteket sorteras efter namn eller efter när filen lades till – UMD-skivan alltid först */
@@ -138,12 +157,12 @@ static void sort_library(Ui *ui)
 static void build_views(Ui *ui)
 {
     for (int t = 0; t < TAB_COUNT; t++) {
-        ui->views[t].idx = malloc((ui->list->count ? ui->list->count : 1) * sizeof(int));
+        ui->views[t].idx = malloc((ui->list->count + 1) * sizeof(int)); /* (Home has the Library card on top of the games) */
         ui->views[t].count = 0;
     }
     LoaderView *homev = &ui->views[TAB_GAMES], *lib = &ui->views[TAB_LIBRARY];
     if (homev->idx)
-        homev->count = home_build(ui->list, homev->idx, ui->list->count); /* Home: the disc, the pinned cards, the ones opened last */
+        homev->count = home_build(ui->list, homev->idx, ui->list->count + 1); /* Home: the disc, the pinned cards, the ones opened last, the Library card */
     for (int i = 0; lib->idx && i < ui->list->count; i++)
         lib->idx[lib->count++] = i;
     sort_library(ui);
@@ -166,13 +185,13 @@ static void set_sort(Ui *ui, int sort)
     sound_play(SND_SELECT);
 }
 
-static void switch_tab(Ui *ui, int tab)
+static void set_tab(Ui *ui, int tab, SoundId sound)
 {
     if (tab == ui->tab || tab < 0 || tab >= TAB_COUNT)
         return;
     ui->tab = tab;
     ui->tab_anim = 0;
-    sound_play(SND_MOVE);
+    sound_play(sound);
     ui->pos = ui->sel[tab] + 0.7f; /* raden glider in från höger */
     ui->still = 0;
     ui->label_for = -2;
@@ -182,6 +201,27 @@ static void switch_tab(Ui *ui, int tab)
     ui->top_focus = -1; /* a new tab starts on its own first thing */
     if (tab != TAB_MUSIC) /* musikfliken har inga kort – låt ikonerna ligga kvar */
         loader_set_view(view(ui));
+}
+
+/* L / R and ✕ on a tab of the top bar: Games and Music. Inside the Library there is nothing to switch to. */
+static void switch_tab(Ui *ui, int tab)
+{
+    if (ui->tab == TAB_LIBRARY || tab < TAB_GAMES || tab > TAB_MUSIC)
+        return;
+    set_tab(ui, tab, SND_MOVE);
+}
+
+/* ✕ on the Library card of Games: the Library opens ... */
+static void open_library(Ui *ui)
+{
+    set_tab(ui, TAB_LIBRARY, SND_SELECT);
+}
+
+/* ... and ○ (the button that goes back) closes it: Games again, on the card that was selected (the Library card, or the one
+ * that was put on Home from the Library) */
+static void close_library(Ui *ui)
+{
+    set_tab(ui, TAB_GAMES, SND_BACK);
 }
 
 /* --- titel --- */
@@ -208,14 +248,15 @@ static float tag_room(u32 type)
 
 static void fit_label(Ui *ui)
 {
-    int i = ui_selected(ui);
+    int i = sel_card(ui);
     float max_w = SCREEN_W - SMALL_X - MARGIN;
     ui->label_for = i;
     ui->label[0] = 0;
-    if (i < 0)
+    if (i < 0 && i != HOME_LIBRARY)
         return;
-    const char *title = ui->list->items[i].title;
-    max_w -= tag_room(ui->list->items[i].type);
+    const char *title = i == HOME_LIBRARY ? L(S_TAB_LIBRARY) : ui->list->items[i].title;
+    if (i >= 0)
+        max_w -= tag_room(ui->list->items[i].type);
     ui->label_size = 0.78f;
     snprintf(ui->label, sizeof(ui->label), "%s", title);
     while (ui->label_size > 0.62f && text_width(ui->label_size, 0, ui->label) > max_w)
@@ -248,7 +289,7 @@ void ui_init(Ui *ui, const EntryList *list, int confirm_circle, int can_launch)
     ui->card_ring = 1;
     home_load(list);
     build_views(ui);
-    ui->tab = ui->views[TAB_GAMES].count || !ui->views[TAB_LIBRARY].count ? TAB_GAMES : TAB_LIBRARY;
+    ui->tab = TAB_GAMES; /* (it always has the Library card) */
     ui->pos = 1.5f; /* korten glider in vid start */
     loader_set_view(view(ui));
 }
@@ -256,6 +297,8 @@ void ui_init(Ui *ui, const EntryList *list, int confirm_circle, int can_launch)
 /* Spellistans index före → efter att posten `removed` (-1 = ingen) tagits bort och/eller en post lagts först. */
 static int remap_index(int i, int removed, int added_front)
 {
+    if (i == HOME_LIBRARY)
+        return i; /* not a game of the list: it stays what it is */
     if (i < 0 || i == removed)
         return -1;
     if (removed >= 0 && i > removed)
@@ -355,12 +398,23 @@ static void home_changed(Ui *ui)
 /* Remove from Home / Add to Home / Pin to Home / Unpin from Home for the selected card */
 static void home_do(Ui *ui, int item)
 {
+    char text[96];
+    if (sel_card(ui) == HOME_LIBRARY) { /* the Library card: pinned or not, it is never removed */
+        if (item == MI_PIN)
+            home_pin_library();
+        else
+            home_unpin_library();
+        snprintf(text, sizeof(text), "%s", L(item == MI_PIN ? S_HOME_PINNED : S_HOME_UNPINNED));
+        home_changed(ui);
+        ui_toast(ui, text);
+        sound_play(SND_SELECT);
+        return;
+    }
     int index = ui_selected(ui);
     if (index < 0)
         return;
     const Entry *e = &ui->list->items[index];
     int tab = ui->tab;
-    char text[96];
     if (item == MI_ADD) {
         home_add(e);
         snprintf(text, sizeof(text), "%s", L(S_HOME_ADDED));
@@ -368,7 +422,7 @@ static void home_do(Ui *ui, int item)
         home_remove(e);
         snprintf(text, sizeof(text), "%s", L(S_HOME_REMOVED));
     } else if (item == MI_PIN) {
-        if (!home_pin(e)) { /* nine are pinned: the tenth place is for the card played last */
+        if (!home_pin(e)) { /* HOME_PIN_MAX games are pinned: the place after them is for the card played last */
             snprintf(text, sizeof(text), L(S_HOME_PIN_LIMIT), HOME_PIN_MAX);
             ui_toast(ui, text);
             sound_play(SND_ERROR);
@@ -401,7 +455,6 @@ static int menu_dir_of(const UiInput *in)
 static void menu_build(Ui *ui, const UiInput *in)
 {
     int index = ui_selected(ui);
-    const Entry *e = &ui->list->items[index];
     char path[256];
     int is_dir;
     ui->menu_kind = MENU_CARD;
@@ -409,6 +462,11 @@ static void menu_build(Ui *ui, const UiInput *in)
     ui->menu_sel = 0;
     ui->menu_stage = 0;
     ui->menu_dir = menu_dir_of(in); /* en riktning som redan hålls flyttar inte markeringen */
+    if (sel_card(ui) == HOME_LIBRARY) { /* the Library card can only be pinned and unpinned: it is always on Home */
+        ui->menu_item[ui->menu_n++] = home_library_pinned() ? MI_UNPIN : MI_PIN;
+        return;
+    }
+    const Entry *e = &ui->list->items[index];
     ui->menu_item[ui->menu_n++] = MI_SAVES;
     if (e->type != ENTRY_UMD && gameops_target(e, path, sizeof(path), &is_dir))
         ui->menu_item[ui->menu_n++] = MI_DELETE;
@@ -721,6 +779,15 @@ static void start_game(Ui *ui)
     }
 }
 
+/* ✕ on the selected card or on the Start (Open) button: a game starts, the Library card opens the Library */
+static void activate_card(Ui *ui)
+{
+    if (sel_card(ui) == HOME_LIBRARY)
+        open_library(ui);
+    else
+        start_game(ui);
+}
+
 /* the text of the Library's Sort button */
 static void sort_text(const Ui *ui, char *out, int size)
 {
@@ -763,7 +830,12 @@ static int update_top_bar(Ui *ui, const UiInput *in, float dt)
             ui->lib_focus = 0; /* ○ is always "back to the game", also when ↑ came from the Sort button */
         sound_play(move == 2 ? SND_MOVE : SND_BACK);
     } else if (move == -1 || move == 1) {
-        int next = (int)clampf(ui->top_focus + move, 0, TOP_COG);
+        int items[3], n = top_tabs(ui, items), at = 0; /* the tabs there are, then the cog wheel */
+        items[n++] = TOP_COG;
+        for (int k = 0; k < n; k++)
+            if (items[k] == ui->top_focus)
+                at = k;
+        int next = items[(int)clampf((float)(at + move), 0, (float)(n - 1))];
         if (next != ui->top_focus) {
             ui->top_focus = next;
             sound_play(SND_MOVE);
@@ -898,6 +970,10 @@ int ui_update(Ui *ui, const UiInput *in, float dt)
     u32 ok = ui->confirm_circle ? PSP_CTRL_CIRCLE : PSP_CTRL_CROSS;
     u32 back_btn = ui->confirm_circle ? PSP_CTRL_CROSS : PSP_CTRL_CIRCLE;
     int on_btn = ui->btn_focus; /* Games: 1 = Start, 2 = Options (the card stays selected) */
+    if (grid && !on_sort && (in->pressed & back_btn) && ui->intro >= 1) { /* ○ closes the Library, also an empty one (on the Sort button it only goes back to the cards) */
+        close_library(ui);
+        return UI_NONE;
+    }
     if ((ui->tab == TAB_GAMES || (grid && !on_sort)) && (in->pressed & PSP_CTRL_START) && count && ui->intro >= 1)
         open_card_menu(ui, in);
     UiInput sides = *in;
@@ -976,7 +1052,7 @@ int ui_update(Ui *ui, const UiInput *in, float dt)
 
     /* ✕ startar – på kortet och på Start-knappen; på Alternativ-knappen öppnar det menyn (ut till XMB går man med HOME) */
     if ((in->pressed & ok) && count && ui->intro >= 1 && !on_sort && on_btn != 2)
-        start_game(ui);
+        activate_card(ui);
 
     /* rutnätet rullar så att markerad rad alltid syns helt */
     int row = count ? *sel / GRID_COLS : 0;
@@ -998,7 +1074,7 @@ int ui_update(Ui *ui, const UiInput *in, float dt)
     update_background(ui, dt);
     update_cover(ui, dt);
 
-    if (ui->label_for != ui_selected(ui)) {
+    if (ui->label_for != sel_card(ui)) {
         fit_label(ui);
         ui->label_anim = 0;
     }
@@ -1118,13 +1194,14 @@ static void draw_top_bar(Ui *ui)
     static int sized_tab = -1;
     static const char *sized_lang;
     float room = bx - 43 - MARGIN; /* the last tab's frame ends 3 px before the cog wheel's */
+    int tabs[2], nt = top_tabs(ui, tabs); /* Games and Music, or only Library inside the Library */
     if (room != sized_room || ui->tab != sized_tab || L(TAB_NAMES[0]) != sized_lang) {
         size = 0.8f;
         gap = 20;
         for (;;) {
             float w = 0;
-            for (int t = 0; t < TAB_COUNT; t++)
-                w += text_width(size, t == ui->tab, L(TAB_NAMES[t])) + gap;
+            for (int k = 0; k < nt; k++)
+                w += text_width(size, tabs[k] == ui->tab, L(TAB_NAMES[tabs[k]])) + gap;
             if (w - gap <= room || size <= 0.56f)
                 break;
             size -= 0.04f;
@@ -1135,8 +1212,8 @@ static void draw_top_bar(Ui *ui)
         sized_lang = L(TAB_NAMES[0]);
     }
     float x = MARGIN;
-    for (int t = 0; t < TAB_COUNT; t++) {
-        int active = t == ui->tab;
+    for (int k = 0; k < nt; k++) {
+        int t = tabs[k], active = t == ui->tab;
         float tw = text_width(size, active, L(TAB_NAMES[t])), pick = smooth(ui->top_anim[t]);
         if (pick * a > 0.01f) { /* selected with ↑ (not the same as the open tab, which is the bold one) */
             float fy, fh; /* centred on the text, which shrinks in long languages */
@@ -1188,12 +1265,49 @@ static void card_geometry(float d, float *x, float *w, float *h, float *y)
         *x = MARGIN - STEP + (d + 1) * STEP;
 }
 
+/* The picture of the Library card: six squares (3 x 2) with a game controller in front of them. It is drawn in the box (x, y, w, h)
+ * of the card, centred, and every edge is on a whole pixel. `c` is the colour of the picture; `face` the colour of the card around
+ * it, which the controller wears as a rim, so that it cuts the squares behind it, and which carves the arch between its two grips.
+ * The shapes are made of rounded rectangles: the squares 19 wide on a pitch of 25, the controller 56 x 41 (a body, two shoulders, two
+ * grips and the arch), all in a box of 83 x 77. `c` has to be opaque while the card is at rest: where two parts overlap, a colour
+ * with some transparency would show a brighter seam. */
+static void draw_library_icon(float x, float y, float w, float h, u32 c, u32 face)
+{
+    float k = floorf(h * 0.66f + 0.5f) / 77.0f; /* design units -> pixels */
+    #define PX(u) floorf((u) * k + 0.5f)
+    float ox = floorf(x + (w - PX(83)) / 2 + 0.5f), oy = floorf(y + (h - PX(77)) / 2 + 0.5f);
+    float sq = PX(19), pitch = PX(25), cr = fminf(PX(3), sq / 2);
+    for (int row = 0; row < 2; row++)
+        for (int col = 0; col < 3; col++)
+            gfx_round_rect(ox + col * pitch, oy + row * pitch, sq, sq, cr, c);
+    /* the controller: x, y, w, h, radius (in design units, from its own top left corner at (27, 36)) */
+    static const float part[5][5] = {
+        { 0, 5, 56, 27, 12 },  /* the body */
+        { 3, 0, 23, 16, 8 }, { 33, 0, 23, 16, 8 }, /* the shoulders */
+        { 0, 14, 20, 27, 10 }, { 36, 14, 20, 27, 10 }, /* the grips */
+    };
+    static const float arch[5] = { 20, 28, 16, 20, 8 }; /* between the grips, under the body */
+    float rim = fmaxf(1, PX(4));
+    for (int pass = 0; pass < 3; pass++) { /* the rim in the card's colour, the controller, the arch */
+        float grow = pass == 0 ? rim : 0;
+        for (int i = 0; i < (pass == 2 ? 1 : 5); i++) {
+            const float *q = pass == 2 ? arch : part[i];
+            float l = PX(27 + q[0]), t = PX(36 + q[1]);
+            float pw = PX(27 + q[0] + q[2]) - l, ph = PX(36 + q[1] + q[3]) - t;
+            float r = fminf(PX(q[4]), fminf(pw, ph) / 2);
+            gfx_round_rect(ox + l - grow, oy + t - grow, pw + 2 * grow, ph + 2 * grow, r + grow, pass == 1 ? c : face);
+        }
+    }
+    #undef PX
+}
+
 /* grid: a card of the library grid, whose selection ring is a little thinner than the big card's in the row. `focus` (0..1) is how
  * selected the card is (brightness, shadow); `ring` (0..1) is how visible its ring is: the selected card keeps its size and
  * brightness when the focus is somewhere else (the top bar, Start, Sort), only the ring goes. */
 static void draw_card(Ui *ui, int list_index, float x, float y, float w, float h, float focus, float ring, float alpha, int grid)
 {
-    IconSlot *slot = loader_icon(list_index);
+    int library = list_index == HOME_LIBRARY; /* the Library card has no icon to load: a card in the theme's colour with its picture */
+    IconSlot *slot = library ? NULL : loader_icon(list_index);
     float r = w / 12.0f; /* corner radius: 1/12 of the width at every size, which is what art.c cuts the pictures to */
 
     gfx_glow(x + 1, y + 3, w - 2, h - 2, 5 + 4 * focus, RGBA(0, 0, 0, (int)(130 * alpha)));
@@ -1205,17 +1319,24 @@ static void draw_card(Ui *ui, int list_index, float x, float y, float w, float h
     }
     if (shown < 1) {
         /* platshållare: mörkt kort med initial, andas svagt medan den laddas */
-        int loading = !slot || slot->state == SLOT_EMPTY || slot->state == SLOT_LOADING;
+        int loading = !library && (!slot || slot->state == SLOT_EMPTY || slot->state == SLOT_LOADING);
         float b = loading ? 0.5f + 0.5f * sinf(ui->time * 4.0f + list_index) : 0;
         float pa = alpha * (1 - shown);
         u32 cc = theme_cur()->card; /* temats färg, andas medan bilden laddas */
-        gfx_round_rect(x, y, w, h, r, RGBA((cc & 0xFF) + (int)(10 * b), ((cc >> 8) & 0xFF) + (int)(10 * b),
-                                           ((cc >> 16) & 0xFF) + (int)(12 * b), (int)(235 * pa)));
-        const char *t = ui->list->items[list_index].title;
-        char initial[2] = { (t[0] >= 'a' && t[0] <= 'z') ? t[0] - 32 : t[0], 0 };
-        if ((u8)initial[0] < 0x80 && initial[0])
-            text_draw(x + w / 2, y + h / 2 + 8 * (w / BIG_W), 1.1f * (w / BIG_W), 0,
-                      RGBA(205, 208, 220, (int)(200 * pa)), ALIGN_CENTER, initial);
+        if (library) { /* the same colour as a game without a picture, but opaque (the rim of the controller has to hide the squares) */
+            u32 face = RGBA(cc & 0xFF, (cc >> 8) & 0xFF, (cc >> 16) & 0xFF, (int)(255 * pa));
+            int tint = (int)lerpf(200, 255, focus); /* as dim as a picture is when it is not selected */
+            gfx_round_rect(x, y, w, h, r, face);
+            draw_library_icon(x, y, w, h, RGBA(tint, tint, tint, (int)(255 * pa)), face);
+        } else {
+            gfx_round_rect(x, y, w, h, r, RGBA((cc & 0xFF) + (int)(10 * b), ((cc >> 8) & 0xFF) + (int)(10 * b),
+                                               ((cc >> 16) & 0xFF) + (int)(12 * b), (int)(235 * pa)));
+            const char *t = ui->list->items[list_index].title;
+            char initial[2] = { (t[0] >= 'a' && t[0] <= 'z') ? t[0] - 32 : t[0], 0 };
+            if ((u8)initial[0] < 0x80 && initial[0])
+                text_draw(x + w / 2, y + h / 2 + 8 * (w / BIG_W), 1.1f * (w / BIG_W), 0,
+                          RGBA(205, 208, 220, (int)(200 * pa)), ALIGN_CENTER, initial);
+        }
     }
     /* the card's pixels: a pixel is part of it when its middle is (the picture, the ring and the corners all use this box) */
     int l = (int)ceilf(x - 0.5f), t = (int)ceilf(y - 0.5f);
@@ -1293,16 +1414,15 @@ static void button_bg(float x, float y, float w, float h, float t, float fade)
 
 static void draw_details(Ui *ui)
 {
-    int i = ui_selected(ui);
+    int i = sel_card(ui);
     float fade = ui->intro * smooth(ui->tab_anim) * (ui->launch < 0 ? 1 : 1 - smooth(ui->launch * 2));
-    if (i < 0 || fade <= 0)
+    if ((i < 0 && i != HOME_LIBRARY) || fade <= 0)
         return;
-    const Entry *e = &ui->list->items[i];
 
-    /* titeln bredvid kortet glider in när markeringen byts, med typetiketten (PSP, APP …) framför som på PS5 */
+    /* titeln bredvid kortet glider in när markeringen byts, med typetiketten (PSP, APP …) framför som på PS5 (the Library card has none) */
     float la = smooth(ui->label_anim);
     float tx = SMALL_X + (1 - la) * 8;
-    const char *type = type_name(e->type);
+    const char *type = i >= 0 ? type_name(ui->list->items[i].type) : "";
     if (type[0]) {
         float bw = ceilf(text_width(0.5f, 1, type)) + 12; /* (whole pixels) */
         float ty = floorf(LABEL_Y - 7.5f - ui->label_size * 6.8f + 0.5f); /* tagg och versaler har samma mitt, som i Biblioteket */
@@ -1314,7 +1434,7 @@ static void draw_details(Ui *ui)
 
     /* Start and Options under the card, on the bottom row. Both have a dark background; the one
      * that is selected (↓ from the card) turns white with dark text. Options is a circle as high as Start, with three dots. */
-    const char *go = L(S_LAUNCH);
+    const char *go = L(i >= 0 ? S_LAUNCH : S_F_OPEN); /* the Library card is opened, not started */
     float bx = MARGIN, bh = 26, by = BOTTOM_Y - bh / 2;
     float w = ceilf(text_width(0.66f, 0, go)) + 32;
     float t0 = smooth(ui->btn_anim[0]), t1 = smooth(ui->btn_anim[1]);
@@ -1650,17 +1770,10 @@ static void draw_toast(Ui *ui)
     popup_toast(ui->toast, a);
 }
 
+/* No game at all (nothing was found on the card): where to put them. Shown under the Library card in Games, and in the empty Library. */
 static void draw_empty(Ui *ui)
 {
     float a = ui->intro * smooth(ui->tab_anim);
-    if (ui->list->count) { /* games are there, but Home is empty (everything was removed) */
-        char lines[3][96];
-        int n = text_wrap(L(S_HOME_EMPTY_HINT), 0.62f, SCREEN_W - 2 * MARGIN, lines, 3);
-        text_draw(MARGIN, 120, 0.9f, 0, with_alpha(TEXT_MAIN, a), ALIGN_LEFT, L(S_HOME_EMPTY));
-        for (int i = 0; i < n; i++)
-            text_draw(MARGIN, 142 + i * 17, 0.62f, 0, with_alpha(TEXT_DIM, a), ALIGN_LEFT, lines[i]);
-        return;
-    }
     text_draw(MARGIN, 120, 0.9f, 0, with_alpha(TEXT_MAIN, a), ALIGN_LEFT, L(S_NO_GAMES));
     text_draw(MARGIN, 142, 0.62f, 0, with_alpha(TEXT_DIM, a), ALIGN_LEFT, on_root(L(S_HINT_GAMES)));
     text_draw(MARGIN, 160, 0.62f, 0, with_alpha(TEXT_DIM, a), ALIGN_LEFT, on_root(L(S_HINT_APPS)));
@@ -1689,6 +1802,8 @@ void ui_draw(Ui *ui)
     } else if (view(ui)->count) {
         draw_row(ui);
         draw_details(ui);
+        if (!ui->list->count)
+            draw_empty(ui); /* first start with nothing to play: only the Library card is there, the hint says where games go */
     } else {
         draw_empty(ui);
     }

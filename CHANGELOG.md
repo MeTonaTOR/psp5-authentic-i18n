@@ -13,6 +13,21 @@ The newest version is on top. Changes that are not in a release yet are listed u
   saved like the other psp5 settings.
 - **Top bar:** if the PSP has no battery, no battery icon and no number are shown at all (before, an empty battery was drawn).
   The cog wheel stays where it is.
+- **The Library is a card in Games now, not a tab.** The Library tab is gone from the top bar. In its place there is a **Library
+  card** at the far right of the Games row, after your last game, as on the console. It has its own picture (a game controller in
+  front of a grid of squares) on a card in your theme's colour, the same colour a game without a picture has. It is always there and
+  it can't be removed, so the Library can always be reached. It counts as one of the ten cards: Games shows up to nine games and
+  the Library card.
+- **You can pin the Library card** like any other card (START, then *Pin to Home*): it then moves to the front with the other
+  pinned cards. It does not count towards the pinned games, but the number of games you can pin goes from nine to eight, so the
+  card played last still has a place. If you already pinned nine games, all nine stay pinned.
+- **Opening and closing the Library:** ✕ on the Library card (or on its **Open** button under the card) opens the Library, which
+  works as before (the grid, the Sort button, the options of a card). Its top bar shows only a bold **Library**, where Games was,
+  and the cog wheel. **○ closes the Library** and you are back on the Library card (or on the card you just added to Home from the
+  Library). L and R do nothing inside the Library; in Games they still switch to Music and back.
+- START on the Library card opens a popup with only **Pin to Home** / **Unpin from Home**.
+- With no games on the card at all, the note *No games found* and the hints where to put them are shown under the Library card
+  (the old "Home is empty" note is gone, Home always has the Library card).
 
 ## 1.0.0 – the first release of psp5-authentic
 

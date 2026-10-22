@@ -64,15 +64,16 @@ On a PSP Go, psp5 looks in these folders on both the internal storage and a Memo
 | Button | What it does |
 |---|---|
 | ✕ | Start the game (in Music: play / pause) |
-| START | Games / Library: options of the selected game |
+| START | Games / Library: options of the selected game · on the Library card: pin / unpin |
 | SELECT | Power popup on every tab: Sleep, Shut down, Restart, Recovery menu (✕ does it at once, ○ or SELECT closes) |
 | ↓ in Games | Select the Start and ⋯ (options) buttons under the game · ← → move between them · ↑ or ○ goes back |
-| L / R | Switch between Games, Library and Music |
+| L / R | Switch between Games and Music (not in the Library: ○ closes it) |
+| ✕ on the Library card (the last card of Games) | Open the Library: everything in a grid; the top bar shows only *Library* there |
 | ↑ from a first-row card under the Sort button in the Library | Select the Sort button · ✕ opens the sorting (the same in *Manage Saved Data*); from the other first-row cards ↑ goes straight to the top bar |
-| ↑ from the first thing on a tab | Select the top bar: ← → between Games, Library, Music and the cog wheel · ✕ opens a tab, or the settings on the cog wheel · ↓ goes back down · ○ goes back to the selected game |
+| ↑ from the first thing on a tab | Select the top bar: ← → between Games, Music and the cog wheel (in the Library: Library and the cog wheel) · ✕ opens a tab, or the settings on the cog wheel · ↓ goes back down · ○ goes back to the selected game |
 | □ in Music | Pause / resume |
 | ← → in Music | Previous / next track · hold to seek |
-| ○ | Back |
+| ○ | Back · closes the Library |
 | HOME | Back to the XMB (not as custom launcher)|
 
 ## File manager

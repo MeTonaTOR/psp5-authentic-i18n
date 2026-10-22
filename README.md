@@ -37,19 +37,24 @@ logo is psp5's own and everything is drawn and synthesized in code – no borrow
 Then you get your games in a row along the top. The selected one is large with a thin light
 frame around it, and its artwork fades in behind everything. Under it are two buttons, **Start** and a round
 **⋯** button for its options: press ↓ to reach them, ← → to move between them, and ↑ or ○ to go back to the game.
-**Games** is your home screen: the games and apps you opened last (newest first, at most ten), plus the ones you
-pinned – pinned cards come first, and up to nine can be pinned. A UMD in the drive shows up first, and it appears or
+**Games** is your home screen: the games and apps you opened last (newest first), plus the ones you
+pinned – pinned cards come first, and up to eight games can be pinned. At most ten cards are shown, and one of them is always
+the **Library** card. A UMD in the drive shows up first, and it appears or
 disappears as soon as you put a disc in or take it out. The options (START, or ✕ on the ⋯ button) let you pin a card,
 take it off Home or add it, look at its information, manage its saved data or delete it.
-Next to it is the **Library**: everything you have, games and apps together, in a grid that's easy to scan
-through. Press ↑ from a card in the first row that sits right under the **Sort** button to reach it, and ✕ to sort by
+The **Library** is the last card of Games, at the far right, with a picture of a game controller in front of a grid of
+squares, on the colour of your theme. It is always there and it can't be removed, but you can pin it like any other card: it
+then moves to the front with the pinned ones (it does not count towards the eight games). Press ✕ on it (or on its **Open**
+button) to open the Library: everything you have, games and apps together, in a grid that's easy to scan
+through. Inside it the top bar shows only **Library**, and ○ closes it again – you are back on the Library card. Press ↑ from a
+card in the first row that sits right under the **Sort** button to reach it, and ✕ to sort by
 name or by what you added most recently. From every other card of the first row ↑ goes straight to the top bar.
 
 There are no button hints on screen: the whole menu is navigated with the D-pad. Press ↑ from the first thing on a
-tab (the game, the first row of the Library, the first track) to select the top bar. **Games**, **Library**, **Music**
-and the **cog wheel** are buttons there: ← → move between them, ✕ on a tab opens it, and ✕ on the cog wheel opens the
+tab (the game, the first row of the Library, the first track) to select the top bar. **Games**, **Music** and the
+**cog wheel** are buttons there (inside the Library: **Library** and the cog wheel): ← → move between them, ✕ on a tab opens it, and ✕ on the cog wheel opens the
 settings. ↓ takes you back down to where you were (the Sort button, if you came from there) and ○ to the game that is
-selected. L and R still switch tabs at any time. The card you have selected stays large when the focus moves to the top bar,
+selected. L and R switch between Games and Music at any time (inside the Library they do nothing: ○ closes it). The card you have selected stays large when the focus moves to the top bar,
 the Sort button or the Start and ⋯ buttons; only its white ring goes away, so it's clear what has the focus.
 
 The last tab is **Music**, like the music player in the XMB: it lists the MP3 files in `ms0:/MUSIC` (folders
@@ -65,7 +70,7 @@ so the game gets the whole PSP.
 The cog wheel at the top right opens the settings, laid out like a console's settings pages. From there you can change ARK's CFW
 options (CPU speed, extra memory, caches, USB charging and so on), turn plugins on and off, connect over
 USB, restart, shut down, jump to the XMB or open ARK's recovery menu.
-On any of the three tabs, **SELECT** opens a popup in the middle of the screen with the same four choices as at the
+On Games, on Music and inside the Library, **SELECT** opens a popup in the middle of the screen with the same four choices as at the
 bottom of *Settings → Power and USB*: **Sleep**, **Shut down**, **Restart** and **Recovery menu**. ✕ does the chosen one
 at once (there is no "press again" step), ○ or SELECT closes the popup.
 
@@ -76,7 +81,7 @@ A few other things I cared about:
 - **It has sounds.** A tick when you move around or change tab, a chime when you select something or start a
   game, and one for going back, for errors and for the startup. They are WAV files in `PSP5/sounds/` on the
   card (the zips include them). If a file is missing, psp5 plays the built-in sound of the same name, which it
-  synthesizes in code – you can listen to those in [`docs/sounds/`](docs/sounds). Turn all sounds off in settings.
+  synthesizes in code. Turn all sounds off in settings.
 - **It speaks your language.** psp5 follows the PSP's system language: English, German, French, Spanish,
   Italian, Dutch, Portuguese, Russian and Japanese. Swedish and Czech are there too – the PSP itself doesn't
   offer them, so you pick them under *Settings → psp5 → Language*.
@@ -112,15 +117,15 @@ Everything you need to get psp5 onto your PSP – as a normal app or as ARK's la
 | ← → or the analog stick | move between games (hold to go faster) |
 | ↑ ↓ | move between rows in the Library · in Games, ↓ selects the Start / ⋯ buttons under the card and ↑ goes back |
 | ↑ from the first thing on a tab | select the top bar (the tabs and the cog wheel) · ← → move along it · ↓ back down to where you were · ○ back to the selected game |
-| L / R | switch between Games, Library and Music |
-| START | options of the selected game (Games and Library) |
+| L / R | switch between Games and Music |
+| START | options of the selected game (Games and Library) · on the Library card: pin / unpin |
 | SELECT | power popup: Sleep, Shut down, Restart, Recovery menu (on every tab) |
-| ✕ | start the selected game (or the Start button) · on the ⋯ button: options · on the Sort button: sort the Library (or the saved data) · on a tab in the top bar: open it · on the cog wheel: settings |
+| ✕ | start the selected game (or the Start button) · on the Library card (or its Open button): open the Library · on the ⋯ button: options · on the Sort button: sort the Library (or the saved data) · on a tab in the top bar: open it · on the cog wheel: settings |
 | □ in Music | pause/resume |
 | ✕ in Music | play the selected track (or pause it) |
 | ← → in Music | previous / next track · hold to seek |
 | any button | skip the startup screen |
-| ○ | back (also from the Start / ⋯ buttons and the Sort button) |
+| ○ | back (also from the Start / ⋯ buttons and the Sort button) · closes the Library |
 | HOME | quit to the XMB |
 
 If something ever goes wrong, hold **SELECT** while the PSP boots – ARK then skips its settings and you land
