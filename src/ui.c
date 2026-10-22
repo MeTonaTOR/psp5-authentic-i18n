@@ -1073,7 +1073,7 @@ static void draw_top_bar(Ui *ui)
     /* klockan och batteriet ändras sakta – systemet frågas en gång i sekunden, inte varje bild */
     static float polled_at = -10;
     static char clock_text[8];
-    static int sys_charging, sys_level = -1;
+    static int sys_present, sys_charging, sys_level = -1;
     if (fabsf(ui->time - polled_at) >= 1.0f) { /* även om tiden har nollställts */
         polled_at = ui->time;
         ScePspDateTime now;
@@ -1081,6 +1081,7 @@ static void draw_top_bar(Ui *ui)
         if (sceRtcGetCurrentClockLocalTime(&now) >= 0)
             snprintf(clock_text, sizeof(clock_text), "%02d:%02d", now.hour, now.minute);
         int battery = scePowerIsBatteryExist();
+        sys_present = battery ? 1 : 0;
         sys_charging = battery && scePowerIsBatteryCharging() > 0;
         sys_level = battery ? scePowerGetBatteryLifePercent() : -1;
     }
@@ -1088,18 +1089,21 @@ static void draw_top_bar(Ui *ui)
     float cw = text_width(0.8f, 0, clock_text);
     int charging = testrun_charging() >= 0 ? testrun_charging() : sys_charging;
     int level = testrun_battery() >= 0 ? testrun_battery() : sys_level;
-    /* "Show battery percentage": the real level as a number, in the clock's font, in the place the battery had (10 px from
-     * the clock); the battery and the cog wheel move to the left by its width and another 10 px. Without a battery (level
-     * below 0) there is nothing to show and nothing moves. */
-    float shift = 0;
-    if (g_battery_pct && level >= 0) {
-        char pct[8];
-        snprintf(pct, sizeof(pct), "%d%%", level > 100 ? 100 : level);
-        text_draw(SCREEN_W - MARGIN - cw - TOP_GAP, 25, 0.8f, 0, with_alpha(TEXT_MAIN, a), ALIGN_RIGHT, pct);
-        shift = ceilf(text_width(0.8f, 0, pct)) + TOP_GAP;
-    }
+    int present = testrun_battery() >= 0 || sys_present;
+    /* No battery in the PSP: no icon and no number, and the cog wheel stays where it is without the number. With a battery the icon
+     * is drawn. "Show battery percentage" then keeps room for the widest number ("100%") all the time, so the battery and the cog
+     * wheel stay where they are while the level changes; the number is always TOP_GAP right of the battery, so with fewer digits it
+     * ends a little further from the clock. */
+    float shift = present && g_battery_pct ? ceilf(text_width(0.8f, 0, "100%")) + TOP_GAP : 0;
     float bx = floorf(SCREEN_W - MARGIN - cw - 32 - shift + 0.5f); /* on a whole pixel, so the battery looks the same whatever the clock says */
-    draw_battery(bx, 15, level, charging, ui->time, a);
+    if (present) {
+        draw_battery(bx, 15, level, charging, ui->time, a);
+        if (g_battery_pct && level >= 0) {
+            char pct[8];
+            snprintf(pct, sizeof(pct), "%d%%", level > 100 ? 100 : level);
+            text_draw(bx + 22 + TOP_GAP, 25, 0.8f, 0, with_alpha(TEXT_MAIN, a), ALIGN_LEFT, pct);
+        }
+    }
     /* the cog wheel is a button too: selected (↑ from the first thing of a tab) it gets the frame of a chosen entry, like Sort */
     float gx = bx - 22, cog = smooth(ui->top_anim[TOP_COG]);
     if (cog * a > 0.01f) {

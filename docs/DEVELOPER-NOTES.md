@@ -27,18 +27,24 @@ All changes after 1.0.0 are noted here (and under *Unreleased* in `CHANGELOG.md`
 - **Settings → psp5 → Show battery percentage** (`config.c`, `settings.c`, `ui.c`, `lang.c`): new own setting `g_battery_pct`
   (`batterypct=0|1` in `psp5.cfg`, default 0; `config_load` only changes it when the line is there, so a file from 1.0.0 keeps it
   off). `settings.c` adds the toggle after "Startup animation" (`own = 1`, so it is saved by `settings_commit`); label
-  `S_BATTERY_PCT` in all 11 languages (the string table has 164 rows now). `draw_top_bar` (`ui.c`): when the setting is on and the
-  level is known (`level >= 0`, from `scePowerGetBatteryLifePercent()` through the once-a-second poll that already fed the
-  battery icon, or the test-run override), it draws `"%d%%"` (level capped at 100) at size 0.8, right-aligned `TOP_GAP`
-  (10 px) left of the clock, and `shift = ceilf(width) + TOP_GAP`. The battery is at
-  `floorf(SCREEN_W - MARGIN - clock_w - 32 - shift + 0.5)` and the cog wheel, its frame, the tab `room` and the music-note line
-  all follow `bx`, so nothing else had to change. The tabs shrink with the same rule as before (`room = bx - 43 - MARGIN`,
-  smallest size 0.56). The layout moves when the number gains or loses a digit (100 → 99, 10 → 9), because the number is only as
-  wide as it is. Tests (`host-tests`, not in git): `units/config_test.c` (new; file round trip, old file, defaults, runner entry
-  `pcfg`), `ui/menu_test.c` (text, font, colour and place for levels 80/100/5/0/150, no battery, level -1, shift of the battery
-  and the cog wheel, the tabs for three levels in all 11 languages), `settings/settings_test.c` (the toggle sits under Startup
+  `S_BATTERY_PCT` in all 11 languages (the string table has 164 rows now). `draw_top_bar` (`ui.c`): with the setting on and a
+  battery present, `shift = ceilf(text_width(0.8, "100%")) + TOP_GAP` (`TOP_GAP` = 10 px) is always reserved, whatever the level, so
+  `bx = floorf(SCREEN_W - MARGIN - clock_w - 32 - shift + 0.5)` (the battery) and everything that follows it (the cog wheel and
+  its frame, the tab `room`, the music-note line) stay put while the level changes. The level (`"%d%%"`, capped at 100, from
+  `scePowerGetBatteryLifePercent()` through the once-a-second poll that already fed the icon, or the test-run override) is drawn
+  at size 0.8, `ALIGN_LEFT` at `bx + 22 + TOP_GAP`, i.e. always 10 px after the end of the battery; with fewer digits its right
+  end is further from the clock. It is only drawn when the level is known (`level >= 0`); the room stays reserved then.
+  The tabs shrink with the same rule as before (`room = bx - 43 - MARGIN`, smallest size 0.56).
+- **Top bar without a battery** (`ui.c`): the poll keeps `sys_present` (`scePowerIsBatteryExist()`; the test-run battery counts as
+  present). Without a battery `draw_battery` is not called at all (before it drew the empty outline) and no number is drawn; `bx`
+  is the position without the number (`shift = 0`), so the cog wheel does not move.
+  Tests (`host-tests`, not in git): `units/config_test.c` (new; file round trip, old file, defaults, runner entry `pcfg`),
+  `ui/menu_test.c` (levels 100/80/55/10/5/0/150: battery and cog wheel at the same place, number 10 px after the battery, only the
+  space to the clock grows; no battery with the switch on and off: no bright pixel in the battery's place, cog wheel where it was;
+  level unknown; the tabs for three levels in all 11 languages), `settings/settings_test.c` (the toggle sits under Startup
   animation, toggles with ✕, is saved once), `ui/stubs.c`, `ui/popup_sig.h` (records the text of a drawing call). The test font is
   as wide at every size, so a language whose tabs are at the smallest size in the test (Japanese with "100%") is not measured there.
+
 - **Manage Saved Data: the Sort button and its popup line up with the rows** (`saves.c`): the frame of the Sort button starts at
   `LIST_X`, the same left edge as a row's highlight, and the text 9 px in, at the new `SORT_X` (`LIST_X + 9`), one pixel right
   of the rows' circles, check marks and padlocks (`ROW_ICON_X`, `LIST_X + 8`, new, `draw_rows` uses it). Before: text at

@@ -7,11 +7,12 @@ The newest version is on top. Changes that are not in a release yet are listed u
 
 - **Settings:** new switch **Show battery percentage** (Settings → psp5, under *Startup animation*), off by default. When it is on,
   the real battery level is shown as a number (for example *87%*), in the same font as the clock, between the clock and the
-  battery. The battery and the cog wheel move to the left to make room for it, and the tabs make room too (long languages
-  shrink their tab names a little more). If the PSP reports no battery, no number is shown and nothing moves. The switch is saved
-  like the other psp5 settings.
-- **Manage Saved Data:** the **Sort** button and the popup that opens under it moved 4 px to the left. The frame now starts at
-  the same edge as the highlight of a save, and the text sits right above the circles of the saves.
+  battery. The battery and the cog wheel move left to make room, and they stay exactly where they are at 100% whatever the level
+  is. The number always keeps the same distance from the battery, so when the level drops to two or one digits it only moves
+  a little away from the clock. The tabs make room too (long languages shrink their tab names a little more). The switch is
+  saved like the other psp5 settings.
+- **Top bar:** if the PSP has no battery, no battery icon and no number are shown at all (before, an empty battery was drawn).
+  The cog wheel stays where it is.
 
 ## 1.0.0 – the first release of psp5-authentic
 
