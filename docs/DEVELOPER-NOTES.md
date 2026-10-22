@@ -40,8 +40,9 @@ Everything that changed after 1.0.0 – see `CHANGELOG.md` for the version writt
   ARK-4 reported that it works. A recent ARK-4 is needed. The CI build (`.github/workflows/build.yml`) gets the flag too, since it
   uses the same Makefile.
 - **Version 1.1.0** (`settings.c`, `tools/make_release.py`, `INSTALL.md`, `README.md`): the Version row shows `1.1.0 (ARK-4)` /
-  `1.1.0 (ARK-5)`, `make_release.py` defaults to 1.1.0 and the zips are called `psp5-authentic-v1.1.0-…`. The README and
-  `INSTALL.md` say 1.1.0 and tell about the PSP Go test.
+  `1.1.0 (ARK-5)`, `make_release.py` defaults to 1.1.0 and the zips are called `psp5-authentic-v1.1.0-…`. The README says
+  1.1.0 and keeps its "What has been tested" section general (no single fixes named); `INSTALL.md` says 1.1.0 and that a recent
+  ARK-4 is needed on the PSP Go.
 
 The entries below were written between 1.0.0 and 1.1.0.
 

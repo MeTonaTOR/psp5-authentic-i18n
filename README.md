@@ -94,10 +94,9 @@ Works on the **PSP-1000, 2000, 3000 and PSP Go** with **ARK-4 or ARK-5**; it ada
 version (the PSP-1000 has no extra memory or USB charging, ARK-4 has fewer CPU speeds). The PS Vita isn't supported.
 
 Every update is tested on a **PSP-1000**, the only device used for testing. The other models and the two ARK versions are
-expected to work but aren't tested separately. The PSP Go fixes could not be tried by us on a PSP Go; one of them (the games on
-the Memory Stick Micro showing up with ARK-4) was tried by a PSP Go owner, who reported that it works. Claude also runs
-automated checks on a PC; they are not part of this repository. If something behaves oddly on your PSP, please open an issue
-and tell us what you saw and which PSP and ARK you have.
+expected to work but aren't tested separately. Claude also runs automated checks on a PC; they are not part of this
+repository. If something behaves oddly on your PSP, please open an issue and tell us what you saw and which PSP and ARK you
+have.
 
 ## About this fork
 
