@@ -22,8 +22,15 @@ into psp5 instead of the XMB.
 
 ## After 1.0.0 (next version)
 
-*Nothing yet.* All changes after 1.0.0 are noted here (and under *Unreleased* in `CHANGELOG.md`) until the next version is
-released.
+All changes after 1.0.0 are noted here (and under *Unreleased* in `CHANGELOG.md`) until the next version is released.
+
+- **Manage Saved Data: the Sort button and its popup line up with the rows** (`saves.c`): the frame of the Sort button starts at
+  `LIST_X`, the same left edge as a row's highlight, and the text 9 px in, at the new `SORT_X` (`LIST_X + 9`), one pixel right
+  of the rows' circles, check marks and padlocks (`ROW_ICON_X`, `LIST_X + 8`, new, `draw_rows` uses it). Before: text at
+  `title_x + 9` (x 37) and frame at `LIST_X + 4` (x 28); now text x 33, frame x 24. `header_layout` sets `sort_x = SORT_X`,
+  `draw_header` draws the frame at `sort_x - 9`, so it keeps 9 px round the text and the same width. `draw_sort_menu` draws the
+  popup at `LIST_X` (before `LIST_X + 4`). Not moved: the title. Tested in `host-tests/saves/saves_test.c` (in all 11 languages:
+  the text is at `SORT_X`, the frame at `LIST_X` with 9 px round the text; the popup starts at `LIST_X`).
 
 ## Version 1.0.0 (psp5-authentic)
 

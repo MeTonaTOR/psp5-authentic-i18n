@@ -45,6 +45,8 @@
 #define LIST_W   252.0f
 #define LIST_TOP 62.0f
 #define ROW_H    24.0f
+#define ROW_ICON_X (LIST_X + 8) /* the left edge of a row's circle, check mark or padlock */
+#define SORT_X     (LIST_X + 9) /* where the Sort button's text starts; its frame (9 px to the left) and the Sort popup start at LIST_X, like a row's highlight */
 #define ROWS     7
 #define PANEL_X  292.0f
 #define PANEL_W  164.0f
@@ -968,7 +970,7 @@ static void draw_rows(float a, float slide)
         } else if (i < n - 1 && i + 1 != S.sel) {
             gfx_rect(LIST_X + 4, y + ROW_H - 1, LIST_W - 8, 1, RGBA(255, 255, 255, (int)(22 * a)));
         }
-        float x = LIST_X + 8 + slide, cy = y + ROW_H / 2;
+        float x = ROW_ICON_X + slide, cy = y + ROW_H / 2;
         if (s->locked)
             draw_lock(x + 6, cy, a);
         else if (s->marked)
@@ -1076,10 +1078,11 @@ static void header_layout(Header *h)
     float title_x = LIST_X + 4, limit = HEADER_RIGHT - (h->has_free ? fmaxf(free_w, BAR_W) : 0) - 12;
     h->title_size = fit_line(h->title, sizeof(h->title), L(S_SAVES), 0.95f, 0.5f, fmaxf(limit - title_x, 80));
 
-    /* the Sort button, "Sort: Last updated": its frame starts where the title does, the text 9 px in; not into the selection */
+    /* the Sort button, "Sort: Last updated": its frame starts where the rows' highlight does (LIST_X), the text 9 px in, so it
+     * stands right above the rows' circles; not into the selection */
     char line[96];
     snprintf(line, sizeof(line), "%s: %s", L(S_SORT), L(sort_name(S.sort)));
-    h->sort_x = title_x + 9;
+    h->sort_x = SORT_X;
     limit = h->has_sel ? HEADER_RIGHT - sel_w - 12 : HEADER_RIGHT - BAR_W - 12;
     h->sort_size = fit_line(h->sort, sizeof(h->sort), line, 0.5f, 0.4f, fmaxf(limit - h->sort_x - 9, 60));
     h->sort_w = text_width(h->sort_size, 0, h->sort);
@@ -1096,7 +1099,7 @@ static void draw_header(float a, float slide)
     if (on * a > 0.01f) {
         float fy, fh;
         popup_frame_around(popup_label_mid(SORT_BASELINE, h.sort_size), SORT_FRAME_H, &fy, &fh);
-        popup_choice(LIST_X + 4 + slide, fy, h.sort_w + 18, fh, on * a);
+        popup_choice(h.sort_x - 9 + slide, fy, h.sort_w + 18, fh, on * a);
     }
     text_draw(h.sort_x + slide, SORT_BASELINE, h.sort_size, 0, fade(on > 0.5f ? TEXT_MAIN : TEXT_DIM, a), ALIGN_LEFT, h.sort);
 
@@ -1170,7 +1173,7 @@ static void draw_sort_menu(void)
         return;
     popup_dim(a);
     float w = SORT_MENU_W, h = POPUP_EDGE + SORT_COUNT * POPUP_ITEM + POPUP_EDGE;
-    float x = LIST_X + 4 - (1 - a) * 10, y = 64;
+    float x = LIST_X - (1 - a) * 10, y = 64;
     popup_panel(x, y, w, h, POPUP_DARK, a);
     for (int k = 0; k < SORT_COUNT; k++) {
         float ry = y + POPUP_EDGE + k * POPUP_ITEM;

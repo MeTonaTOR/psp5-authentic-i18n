@@ -5,7 +5,8 @@ The newest version is on top. Changes that are not in a release yet are listed u
 
 ## Unreleased
 
-*Nothing yet.*
+- **Manage Saved Data:** the **Sort** button and the popup that opens under it moved 4 px to the left. The frame now starts at
+  the same edge as the highlight of a save, and the text sits right above the circles of the saves.
 
 ## 1.0.0 – the first release of psp5-authentic
 
