@@ -113,7 +113,8 @@ int ui_selected(const Ui *ui)
     return i >= 0 ? i : -1; /* (the Library card is not a game) */
 }
 
-/* The tabs the top bar shows, left to right: Games and Music; inside the Library only "Library", where Games would be */
+/* The tabs the top bar shows, left to right: Games and Music; inside the Library only the word "Library", where Games would be
+ * (it is not a tab: update_top_bar does not let it be selected) */
 static int top_tabs(const Ui *ui, int out[2])
 {
     if (ui->tab == TAB_LIBRARY) {
@@ -830,7 +831,9 @@ static int update_top_bar(Ui *ui, const UiInput *in, float dt)
             ui->lib_focus = 0; /* ○ is always "back to the game", also when ↑ came from the Sort button */
         sound_play(move == 2 ? SND_MOVE : SND_BACK);
     } else if (move == -1 || move == 1) {
-        int items[3], n = top_tabs(ui, items), at = 0; /* the tabs there are, then the cog wheel */
+        int items[3], n = 0, at = 0; /* what can be selected: the tabs (not the word "Library"), then the cog wheel */
+        if (ui->tab != TAB_LIBRARY)
+            n = top_tabs(ui, items);
         items[n++] = TOP_COG;
         for (int k = 0; k < n; k++)
             if (items[k] == ui->top_focus)
@@ -1020,12 +1023,12 @@ int ui_update(Ui *ui, const UiInput *in, float dt)
             sound_play(SND_SELECT);
         }
         move = 0;
-    } else if (grid && move == -2 && *sel < GRID_COLS) { /* ↑ from the first row: to the Sort button when it is above the card, else straight to the top bar */
+    } else if (grid && move == -2 && *sel < GRID_COLS) { /* ↑ from the first row: to the Sort button when it is above the card, else straight to the cog wheel */
         if (count > 1 && sort_above(ui, *sel % GRID_COLS)) {
             ui->lib_focus = 1;
             sound_play(SND_MOVE);
         } else if (fresh) {
-            enter_top_bar(ui, ui->tab);
+            enter_top_bar(ui, TOP_COG); /* (the word "Library" cannot be selected, so this is the only thing up there) */
         }
         move = 0;
     } else if (ui->tab == TAB_GAMES && !count && move == -2 && fresh) { /* an empty tab still reaches the top bar (and so the cog wheel) */
@@ -1265,42 +1268,6 @@ static void card_geometry(float d, float *x, float *w, float *h, float *y)
         *x = MARGIN - STEP + (d + 1) * STEP;
 }
 
-/* The picture of the Library card: six squares (3 x 2) with a game controller in front of them. It is drawn in the box (x, y, w, h)
- * of the card, centred, and every edge is on a whole pixel. `c` is the colour of the picture; `face` the colour of the card around
- * it, which the controller wears as a rim, so that it cuts the squares behind it, and which carves the arch between its two grips.
- * The shapes are made of rounded rectangles: the squares 19 wide on a pitch of 25, the controller 56 x 41 (a body, two shoulders, two
- * grips and the arch), all in a box of 83 x 77. `c` has to be opaque while the card is at rest: where two parts overlap, a colour
- * with some transparency would show a brighter seam. */
-static void draw_library_icon(float x, float y, float w, float h, u32 c, u32 face)
-{
-    float k = floorf(h * 0.66f + 0.5f) / 77.0f; /* design units -> pixels */
-    #define PX(u) floorf((u) * k + 0.5f)
-    float ox = floorf(x + (w - PX(83)) / 2 + 0.5f), oy = floorf(y + (h - PX(77)) / 2 + 0.5f);
-    float sq = PX(19), pitch = PX(25), cr = fminf(PX(3), sq / 2);
-    for (int row = 0; row < 2; row++)
-        for (int col = 0; col < 3; col++)
-            gfx_round_rect(ox + col * pitch, oy + row * pitch, sq, sq, cr, c);
-    /* the controller: x, y, w, h, radius (in design units, from its own top left corner at (27, 36)) */
-    static const float part[5][5] = {
-        { 0, 5, 56, 27, 12 },  /* the body */
-        { 3, 0, 23, 16, 8 }, { 33, 0, 23, 16, 8 }, /* the shoulders */
-        { 0, 14, 20, 27, 10 }, { 36, 14, 20, 27, 10 }, /* the grips */
-    };
-    static const float arch[5] = { 20, 28, 16, 20, 8 }; /* between the grips, under the body */
-    float rim = fmaxf(1, PX(4));
-    for (int pass = 0; pass < 3; pass++) { /* the rim in the card's colour, the controller, the arch */
-        float grow = pass == 0 ? rim : 0;
-        for (int i = 0; i < (pass == 2 ? 1 : 5); i++) {
-            const float *q = pass == 2 ? arch : part[i];
-            float l = PX(27 + q[0]), t = PX(36 + q[1]);
-            float pw = PX(27 + q[0] + q[2]) - l, ph = PX(36 + q[1] + q[3]) - t;
-            float r = fminf(PX(q[4]), fminf(pw, ph) / 2);
-            gfx_round_rect(ox + l - grow, oy + t - grow, pw + 2 * grow, ph + 2 * grow, r + grow, pass == 1 ? c : face);
-        }
-    }
-    #undef PX
-}
-
 /* grid: a card of the library grid, whose selection ring is a little thinner than the big card's in the row. `focus` (0..1) is how
  * selected the card is (brightness, shadow); `ring` (0..1) is how visible its ring is: the selected card keeps its size and
  * brightness when the focus is somewhere else (the top bar, Start, Sort), only the ring goes. */
@@ -1309,6 +1276,9 @@ static void draw_card(Ui *ui, int list_index, float x, float y, float w, float h
     int library = list_index == HOME_LIBRARY; /* the Library card has no icon to load: a card in the theme's colour with its picture */
     IconSlot *slot = library ? NULL : loader_icon(list_index);
     float r = w / 12.0f; /* corner radius: 1/12 of the width at every size, which is what art.c cuts the pictures to */
+    /* the card's pixels: a pixel is part of it when its middle is (the picture, the ring and the corners all use this box) */
+    int l = (int)ceilf(x - 0.5f), t = (int)ceilf(y - 0.5f);
+    int rt = (int)ceilf(x + w - 0.5f), b = (int)ceilf(y + h - 0.5f);
 
     gfx_glow(x + 1, y + 3, w - 2, h - 2, 5 + 4 * focus, RGBA(0, 0, 0, (int)(130 * alpha)));
 
@@ -1320,17 +1290,16 @@ static void draw_card(Ui *ui, int list_index, float x, float y, float w, float h
     if (shown < 1) {
         /* platshållare: mörkt kort med initial, andas svagt medan den laddas */
         int loading = !library && (!slot || slot->state == SLOT_EMPTY || slot->state == SLOT_LOADING);
-        float b = loading ? 0.5f + 0.5f * sinf(ui->time * 4.0f + list_index) : 0;
+        float breath = loading ? 0.5f + 0.5f * sinf(ui->time * 4.0f + list_index) : 0;
         float pa = alpha * (1 - shown);
         u32 cc = theme_cur()->card; /* temats färg, andas medan bilden laddas */
-        if (library) { /* the same colour as a game without a picture, but opaque (the rim of the controller has to hide the squares) */
-            u32 face = RGBA(cc & 0xFF, (cc >> 8) & 0xFF, (cc >> 16) & 0xFF, (int)(255 * pa));
+        if (library) { /* the same colour as a game without a picture; the picture is one image on the card's whole pixels */
             int tint = (int)lerpf(200, 255, focus); /* as dim as a picture is when it is not selected */
-            gfx_round_rect(x, y, w, h, r, face);
-            draw_library_icon(x, y, w, h, RGBA(tint, tint, tint, (int)(255 * pa)), face);
+            gfx_round_rect(l, t, rt - l, b - t, r, RGBA(cc & 0xFF, (cc >> 8) & 0xFF, (cc >> 16) & 0xFF, (int)(255 * pa)));
+            gfx_library_icon(l, t, rt - l, b - t, RGBA(tint, tint, tint, (int)(255 * pa)));
         } else {
-            gfx_round_rect(x, y, w, h, r, RGBA((cc & 0xFF) + (int)(10 * b), ((cc >> 8) & 0xFF) + (int)(10 * b),
-                                               ((cc >> 16) & 0xFF) + (int)(12 * b), (int)(235 * pa)));
+            gfx_round_rect(x, y, w, h, r, RGBA((cc & 0xFF) + (int)(10 * breath), ((cc >> 8) & 0xFF) + (int)(10 * breath),
+                                               ((cc >> 16) & 0xFF) + (int)(12 * breath), (int)(235 * pa)));
             const char *t = ui->list->items[list_index].title;
             char initial[2] = { (t[0] >= 'a' && t[0] <= 'z') ? t[0] - 32 : t[0], 0 };
             if ((u8)initial[0] < 0x80 && initial[0])
@@ -1338,9 +1307,6 @@ static void draw_card(Ui *ui, int list_index, float x, float y, float w, float h
                           RGBA(205, 208, 220, (int)(200 * pa)), ALIGN_CENTER, initial);
         }
     }
-    /* the card's pixels: a pixel is part of it when its middle is (the picture, the ring and the corners all use this box) */
-    int l = (int)ceilf(x - 0.5f), t = (int)ceilf(y - 0.5f);
-    int rt = (int)ceilf(x + w - 0.5f), b = (int)ceilf(y + h - 0.5f);
     if (shown > 0) {
         int tint = (int)lerpf(200, 255, focus);
         gfx_tex(slot->tex, l, t, rt - l, b - t, RGBA(tint, tint, tint, (int)(255 * alpha * shown)));

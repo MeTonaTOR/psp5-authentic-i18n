@@ -663,6 +663,24 @@ void gfx_speaker(float x, float y, u32 color)
     gfx_quad(cone, cc);
 }
 
+/* The picture of the Library card, centred in the card box l, t, w, h. The size is a whole number of pixels (two thirds of the card's
+ * height) and the picture is made for exactly that size, with its corner on a whole pixel, so nothing is ever blurred or shifted. */
+void gfx_library_icon(int l, int t, int w, int h, u32 color)
+{
+    int ph = (int)floorf(h * 0.66f + 0.5f), pw = icon_library_width(ph);
+    int x = l + (w - pw + 1) / 2, y = t + (h - ph + 1) / 2;
+    IconBox b = { pw, ph, x, y, pw / 2.0f, ph / 2.0f, 0, 0 };
+    const Texture *tex = ph > 0 ? icon_get(ICON_LIBRARY, (float)pw, (float)ph, 0, &b) : NULL;
+    if (tex) {
+        icon_blit(tex, &b, color);
+        return;
+    }
+    float u = ph / 77.0f; /* the picture could not be made: plain squares and the body of the controller */
+    for (int i = 0; i < 6; i++)
+        gfx_round_rect(x + (i % 3) * 25 * u, y + (i / 3) * 25 * u, 19 * u, 19 * u, 3 * u, color);
+    gfx_round_rect(x + 27 * u, y + 41 * u, 56 * u, 27 * u, 12 * u, color);
+}
+
 void gfx_button(float cx, float cy, float r, int kind, u32 plate, u32 mark)
 {
     static const int symbol[] = { ICON_CROSS, ICON_CIRCLE, ICON_TRIANGLE, ICON_SQUARE }; /* BTN_* */

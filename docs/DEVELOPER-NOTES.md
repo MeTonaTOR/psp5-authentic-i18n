@@ -53,6 +53,31 @@ All changes after 1.0.0 are noted here (and under *Unreleased* in `CHANGELOG.md`
   popup at `LIST_X` (before `LIST_X + 4`). Not moved: the title. Tested in `host-tests/saves/saves_test.c` (in all 11 languages:
   the text is at `SORT_X`, the frame at `LIST_X` with 9 px round the text; the popup starts at `LIST_X`).
 
+- **The Library picture is an icon of the icon framework; the word "Library" is not selectable** (`icons.c/.h`, `gfx.c/.h`, `ui.c/.h`).
+  The first version of the picture was drawn in `ui.c` from nine `gfx_round_rect` calls in the card's float box, with the right
+  shoulder at x 33..56 and the left at 3..26 (so the controller was cut off on the right) and with every edge rounded from the
+  card's fractional position, so it changed shape while the cards slid. Now:
+  - `ICON_LIBRARY` in `icons.c`: `library_geo(h, &g)` rounds every edge of the 83 x 77 design to whole pixels (`PXL(v) =
+    floorf(v * h / 77 + 0.5)`; `h` is the picture's height in pixels, the width follows: `icon_library_width(h)`). The controller
+    is built from its left half: body (centred, so its own mirror image), left shoulder `{3, 0, 23, 16, 8}` and left grip
+    `{0, 14, 20, 27, 10}` - the right ones are mirrored (`x = ox + cw - right_edge`) and the arch is what is left between the
+    grips (`gap_r - gap_l`), so the controller is the same on both sides at every size. `sd_library` is one signed distance:
+    (squares minus the controller dilated by the rim) united with the controller minus the arch, so the rim cut and the arch need
+    no colour of the card and the picture can be translucent without seams. Below 32 px it is sampled 4 x 4 (`fine`).
+  - `gfx_library_icon(l, t, w, h, color)` in `gfx.c`: picture height `floorf(h * 0.66 + 0.5)`, centred in the card's whole-pixel box
+    (`(w - pw + 1) / 2`), one cached white alpha image per height (`cache_get`, key kind/`w4`/`h4`, phase 0), drawn with `icon_blit`
+    (`GU_NEAREST`, pixel for pixel) like the note and the speaker; if the cache has no room it falls back to plain rounded squares
+    and a body. Only the card's size changes the picture, never its position, and the image for a size is always the same.
+  - `draw_card` had a local `float b` (the placeholder's breathing) that shadowed the new `int b` of the card box; renamed `breath`.
+  - `update_top_bar`: inside the Library the word is not selectable (see "Tabs" below).
+  - Tests (`host-tests`, not in git): `icons/librarytest.py` (new; every height 12..96: whole-pixel edges, three equal squares at
+    an even pitch, the second row the first one moved down, the controller's rows mirror exactly, nothing cut off at the right),
+    `gfx/gfxtest.c` (`test_library_icon`: 320 placements of the picture in cards of eight sizes give the same image, centred, and
+    exactly what `icon_render` makes), `ui/menu_test.c` (a card that slides and shrinks over 150 frames: the picture is the
+    one of the card's height, in the middle, the controller mirror-symmetric; the top bar of the Library: ↑ goes to the cog
+    wheel, ← → do nothing, ↓ comes back to the Sort button; the word never has a frame, in all 11 languages),
+    `ui/pixel_test.c`, `run_all.sh`.
+
 - **The Library is a card of Home, not a tab** (`home.c/.h`, `ui.c/.h`, `loader.c/.h`, `lang.c/.h`):
   - *Model.* `views[TAB_GAMES].idx` may now hold the sentinel `HOME_LIBRARY` (-3; -1 and -2 are the "none" / "not known yet" values
     `label_for`, `lib_label_for` and `cover_for` use) besides list indices. `home_build` puts the disc first, then the pinned cards
@@ -66,19 +91,20 @@ All changes after 1.0.0 are noted here (and under *Unreleased* in `CHANGELOG.md`
   - *Tabs.* `enum { TAB_GAMES, TAB_MUSIC, TAB_LIBRARY, TAB_COUNT }`: the Library is not in the bar any more, it is the state
     `ui->tab == TAB_LIBRARY` that `open_library` (✕ on the card or on Open, via `activate_card`) enters and `close_library` (the back
     button - ○, or ✕ with ○ as confirm - on a card of the grid, also when the Library is empty) leaves; both go through
-    `set_tab`. `switch_tab` (L/R and ✕ on a tab) only moves between Games and Music. `top_tabs()` gives the tabs of the bar
-    ({Games, Music}, or {Library} inside the Library) and `update_top_bar`, `draw_top_bar` and the tab-fit code use it, so the
-    Library's single tab is drawn bold where Games is, framed like any tab when selected. `sel_card()` returns the raw entry of
+    `set_tab`. `switch_tab` (L/R and ✕ on a tab) only moves between Games and Music. `top_tabs()` gives the tabs the bar shows
+    ({Games, Music}, or {Library} inside the Library) and `draw_top_bar` and the tab-fit code use it, so the word "Library" is
+    drawn bold where Games is. It is not selectable: `update_top_bar` takes the tabs from `top_tabs()` only when
+    `ui->tab != TAB_LIBRARY`, so inside the Library the only selectable thing is `TOP_COG` (`top_focus` is never `TAB_LIBRARY`, so
+    `top_anim[TAB_LIBRARY]` stays 0 and the word never gets a frame); ↑ from a first-row card that is not under the Sort button calls
+    `enter_top_bar(ui, TOP_COG)`. `sel_card()` returns the raw entry of
     the selected card, `ui_selected()` returns -1 for the Library card (so `main.c` never starts or deletes it), `remap_index`
     keeps the sentinel, `build_views` asks `home_build` for `count + 1` places, `loader.c` skips negative indices
     (`load_icon_near`, `loader_focus`).
-  - *Card.* `draw_card` has a branch for `HOME_LIBRARY`: an opaque card in `theme_cur()->card` (the colour of a game without a
-    picture; the placeholder is slightly transparent, this one has to hide the squares behind the controller's rim) and
-    `draw_library_icon`: six rounded squares (19 on a pitch of 25) and the controller (body, two shoulders, two grips and an arch
-    carved in the card's colour), in a design box of 83 x 77 scaled to 66 % of the card's height with `PX(u) = floorf(u * k + 0.5)`
-    so that every edge is on a whole pixel; the controller has a rim of the card's colour that cuts the squares. The picture is
-    opaque while the card is at rest (a translucent colour showed brighter seams where parts overlap) and dims like a cover when
-    the card is not selected (200 to 255). Nothing from the console is used: it is all `gfx_round_rect`.
+  - *Card.* `draw_card` has a branch for `HOME_LIBRARY`: a card in `theme_cur()->card` (the colour of a game without a
+    picture, opaque) with the picture from `gfx_library_icon` (see "The Library picture is an icon of the icon framework" above).
+    The card's pixel box `l, t, rt, b` (`ceilf(x - 0.5)`, the rule of the cover and the ring) is computed at the top of
+    `draw_card`, and both the face and the picture use it. The picture dims like a cover when the card is not selected (tint 200
+    to 255). Nothing from the console is used.
   - *Under the card.* `fit_label` gives the title `S_TAB_LIBRARY` without a type tag, the Start button reads `S_F_OPEN`, ✕ on it
     does the same as ✕ on the card. START / ⋯ open a popup with one choice (`MI_PIN` or `MI_UNPIN`, `home_do`), toast
     `S_HOME_PINNED` / `S_HOME_UNPINNED`. `draw_empty` is only the *No games found* note and the two hints, shown under the Library
@@ -86,8 +112,9 @@ All changes after 1.0.0 are noted here (and under *Unreleased* in `CHANGELOG.md`
     are removed (the string table has 162 rows).
   - *Tests* (`host-tests`, not in git): `home/home_test.c` (the Library card at the end, pinned first, 10 cards, 8 pins, legacy
     9 pins, random operations with the Library card), `ui/menu_test.c` (new tab order, the Library card section, per-language
-    checks of the title, the Open button, the one-tab top bar and the hint, the card's colour and picture in four themes at both
-    sizes), `ui/pixel_test.c` (the Library card at rest, pinned, empty Home, Library top bar), `ui/drive.c`, `run_all.sh` (162 strings).
+    checks of the title, the Open button, the top bar with only the word "Library" and the hint, the card's colour and picture in
+    four themes at both sizes), `ui/pixel_test.c` (the Library card at rest, pinned, empty Home, Library top bar), `ui/drive.c`,
+    `run_all.sh` (162 strings).
 
 ## Version 1.0.0 (psp5-authentic)
 

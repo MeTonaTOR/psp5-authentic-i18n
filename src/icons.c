@@ -89,9 +89,59 @@ void icon_box(int kind, float cx, float cy, float w, float h, float r, IconBox *
     b->cy = b->th / 2.0f + qy * 0.5f;
 }
 
+/* The Library picture, in whole pixels from its top left corner. The design is 83 x 77 units: six squares (19 on a pitch of 25) and the
+ * controller (56 x 41) with its top left corner at (27, 36); `u` pixels per unit, every edge rounded to a whole pixel. The right half of
+ * the controller is the mirror image of its left half, so it is exactly the same on both sides whatever the size. */
+typedef struct {
+    float w, h;           /* the picture */
+    float sq, pitch, cr;  /* a square, the distance between two, its corner radius */
+    float rim;            /* the controller's rim: the squares stay this far from it */
+    float part[5][5];     /* the controller: x, y, w, h, corner radius of the body, the two shoulders and the two grips */
+    float arch[5];        /* the arch between the grips, cut out of the controller */
+} LibGeo;
+
+static void library_geo(int h, LibGeo *g)
+{
+    const float u = h / 77.0f;
+    #define PXL(v) floorf((v) * u + 0.5f)
+    const float cw = PXL(56), ox = PXL(27), oy = h - PXL(41); /* the controller's width, its left edge, its top (it ends at the bottom) */
+    g->h = (float)h;
+    g->sq = PXL(19);
+    g->pitch = PXL(25);
+    g->cr = fminf(PXL(3), g->sq / 2);
+    g->rim = fmaxf(1, PXL(4));
+    /* the body and the arch are centred; the left shoulder and grip are made, the right ones are their mirror images */
+    static const float left[2][5] = { { 3, 0, 23, 16, 8 }, { 0, 14, 20, 27, 10 } }; /* shoulder, grip (design units, from the controller) */
+    static const float body[5] = { 0, 5, 56, 27, 12 }, arch[5] = { 0, 28, 0, 20, 8 }; /* (the arch's own x and width come from the grips) */
+    float *p = g->part[0];
+    p[0] = ox; p[1] = oy + PXL(body[1]); p[2] = cw; p[3] = PXL(body[1] + body[3]) - PXL(body[1]); p[4] = fminf(PXL(body[4]), fminf(p[2], p[3]) / 2);
+    for (int i = 0; i < 2; i++) {
+        const float *q = left[i];
+        float l = PXL(q[0]), r = PXL(q[0] + q[2]), t = PXL(q[1]), b = PXL(q[1] + q[3]);
+        float rad = fminf(PXL(q[4]), fminf(r - l, b - t) / 2);
+        float *a = g->part[1 + i * 2], *c = g->part[2 + i * 2];
+        a[0] = ox + l; a[1] = oy + t; a[2] = r - l; a[3] = b - t; a[4] = rad;
+        c[0] = ox + cw - r; c[1] = a[1]; c[2] = a[2]; c[3] = a[3]; c[4] = rad; /* mirrored: the same size, the same distance from the right edge */
+    }
+    /* the arch is what is left between the grips, so it is exactly in the middle (and the same width as the gap between the grips) */
+    float gap_l = g->part[3][0] + g->part[3][2], gap_r = g->part[4][0]; /* the inner edges of the grips */
+    float at = PXL(arch[1]), ab = PXL(arch[1] + arch[3]), aw = gap_r - gap_l;
+    g->arch[0] = gap_l; g->arch[1] = oy + at; g->arch[2] = aw; g->arch[3] = ab - at; g->arch[4] = fminf(PXL(arch[4]), aw / 2);
+    g->w = fmaxf(ox + cw, 2 * g->pitch + g->sq);
+    #undef PXL
+}
+
+int icon_library_width(int h)
+{
+    LibGeo g;
+    library_geo(h, &g);
+    return (int)g.w;
+}
+
 typedef struct {
     int kind;
     float w, h, r;
+    LibGeo lib;           /* ICON_LIBRARY */
     float sw, s, sq, tri[6];
     float bolt[12];
     float gear[GEAR_PTS * 2];
@@ -138,6 +188,25 @@ static float sd_speaker(const Shape *p, float px, float py)
     return fminf(sd_rbox(px + 2.5f * u, py, 2.0f * u, 3.0f * u, 0), sd_poly(p->cone, 4, px, py));
 }
 
+/* The Library picture: the squares, minus the controller and its rim, plus the controller (minus the arch between its grips).
+ * (px, py) is measured from the middle of the picture. It is one shape, so where the parts meet nothing is blended twice. */
+static float sd_library(const LibGeo *g, float px, float py)
+{
+    px += g->w / 2;
+    py += g->h / 2; /* from the top left corner */
+    float squares = 1e9f, ctrl = 1e9f;
+    for (int row = 0; row < 2; row++)
+        for (int col = 0; col < 3; col++)
+            squares = fminf(squares, sd_rbox(px - col * g->pitch - g->sq / 2, py - row * g->pitch - g->sq / 2, g->sq / 2, g->sq / 2, g->cr));
+    for (int i = 0; i < 5; i++) {
+        const float *q = g->part[i];
+        ctrl = fminf(ctrl, sd_rbox(px - q[0] - q[2] / 2, py - q[1] - q[3] / 2, q[2] / 2, q[3] / 2, q[4]));
+    }
+    const float *a = g->arch;
+    ctrl = fmaxf(ctrl, -sd_rbox(px - a[0] - a[2] / 2, py - a[1] - a[3] / 2, a[2] / 2, a[3] / 2, a[4]));
+    return fminf(fmaxf(squares, g->rim - ctrl), ctrl);
+}
+
 /* The bolt: a zigzag 2 r high, drawn with the corners in this order (the units are 1/5.2 r). */
 static void bolt_polygon(float r, float *v)
 {
@@ -181,6 +250,8 @@ static float shape_distance(const Shape *p, float px, float py)
         return sd_note(p, px, py);
     case ICON_SPEAKER:
         return sd_speaker(p, px, py);
+    case ICON_LIBRARY:
+        return sd_library(&p->lib, px, py);
     default: /* ICON_GEAR */
         return fmaxf(sd_poly(p->gear, GEAR_PTS, px, py), -(len2(px, py) - 0.34f * p->r));
     }
@@ -209,6 +280,8 @@ void icon_render(int kind, float w, float h, float r, float cx, float cy, int tw
         note_shape(2 * r, &sh);
     if (kind == ICON_SPEAKER)
         speaker_shape(r / 4.5f, &sh);
+    if (kind == ICON_LIBRARY)
+        library_geo((int)(h + 0.5f), &sh.lib);
     if (kind == ICON_TRI_R || kind == ICON_TRI_L) { /* the tip is in the middle of the far side */
         float d = kind == ICON_TRI_R ? 1.0f : -1.0f;
         const float t[6] = { -d * w / 2, -h / 2, d * w / 2, 0, -d * w / 2, h / 2 };
@@ -223,6 +296,8 @@ void icon_render(int kind, float w, float h, float r, float cx, float cy, int tw
                   : kind == ICON_RRECT || kind == ICON_RRING || kind == ICON_RFRAME || kind == ICON_RFRAME_S
                       ? fminf(r, fminf(w, h) / 2) : 99;
     int fine = kind == ICON_BOLT || kind == ICON_TRI_R || kind == ICON_TRI_L || kind == ICON_NOTE || kind == ICON_SPEAKER;
+    if (kind == ICON_LIBRARY && h < 32)
+        fine = 1; /* its corners are a pixel or two across at the small size */
     int ss = feature < 2.5f || fine ? 4 : 1;
     for (int y = 0; y < th; y++) {
         for (int x = 0; x < tw; x++) {

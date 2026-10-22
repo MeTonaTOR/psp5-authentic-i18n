@@ -68,6 +68,10 @@ void gfx_triangle(float x, float y, float w, float h, int dir, u32 color);
 void gfx_note(float cx, float cy, float size, u32 color);
 /* Högtalare (9 × 15 px): vänsterkanten vid x, mitten på höjden y */
 void gfx_speaker(float x, float y, u32 color);
+/* The picture of the Library card (six squares with a game controller in front), centred in the card whose pixels are the whole-pixel
+ * box l, t, w, h, about two thirds of its height. Everything in it is on whole pixels and it is one image, so it looks the same
+ * wherever the card is and the controller is exactly the same on its left and right. */
+void gfx_library_icon(int l, int t, int w, int h, u32 color);
 
 /* Additiv blandning (ljus som lyser upp det som redan ritats) på/av */
 void gfx_blend_add(int on);

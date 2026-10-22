@@ -25,7 +25,8 @@ enum {
     ICON_NOTE,     /* the music note (two notes with a beam) in a square of side 2 r, all in one piece */
     ICON_SPEAKER,  /* the loudspeaker: box and cone in one piece, 2 r wide and 4 r high (r = 4.5 for the usual size) */
     ICON_RFRAME,   /* rounded rectangle w * h, a ring of the fixed thickness ICON_FRAME_T just inside the edge */
-    ICON_RFRAME_S  /* the same with the thinner ICON_FRAME_T_S - the ring around the selected card of the library grid */
+    ICON_RFRAME_S, /* the same with the thinner ICON_FRAME_T_S - the ring around the selected card of the library grid */
+    ICON_LIBRARY   /* the picture of the Library card: 3 x 2 squares with a game controller in front, w * h whole pixels (see icon_library_width) */
 };
 
 #define ICON_FRAME_T   2.5f /* thickness of ICON_RFRAME in pixels (about what the big card's ring always had) */
@@ -41,6 +42,11 @@ typedef struct {
     float cx, cy;
     int phase_x, phase_y;
 } IconBox;
+
+/* The Library picture is `h` pixels high; this is how wide it is. Everything in it is on whole pixels (the squares all the same
+ * size and the same distance apart, the controller exactly the same on its left and right), so the picture is made for this one
+ * size: the caller asks for it with the whole-pixel w, h and places its top left corner on a whole pixel. */
+int icon_library_width(int h);
 
 /* The box for a shape centred on (cx, cy) on the screen. `w`, `h` are only used by ICON_RRECT and
  * the triangles (where they are the size of the triangle). */

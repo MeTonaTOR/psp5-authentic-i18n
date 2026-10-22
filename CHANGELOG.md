@@ -23,8 +23,12 @@ The newest version is on top. Changes that are not in a release yet are listed u
   card played last still has a place. If you already pinned nine games, all nine stay pinned.
 - **Opening and closing the Library:** ✕ on the Library card (or on its **Open** button under the card) opens the Library, which
   works as before (the grid, the Sort button, the options of a card). Its top bar shows only a bold **Library**, where Games was,
-  and the cog wheel. **○ closes the Library** and you are back on the Library card (or on the card you just added to Home from the
+  and the cog wheel. The word is only a title, not a tab: it can't be selected and has no highlight, so only the cog wheel (and
+  the Sort button) can be reached with ↑. **○ closes the Library** and you are back on the Library card (or on the card you just added to Home from the
   Library). L and R do nothing inside the Library; in Games they still switch to Music and back.
+- **The Library card's picture is polished.** The game controller is now exactly the same on its left and on its right (before,
+  the right side was cut off a little), and the picture is drawn the same way as the other icons of the app: on whole pixels, as
+  one image. It no longer wiggles or changes its shape while the cards slide, and it looks the same wherever the card is.
 - START on the Library card opens a popup with only **Pin to Home** / **Unpin from Home**.
 - With no games on the card at all, the note *No games found* and the hints where to put them are shown under the Library card
   (the old "Home is empty" note is gone, Home always has the Library card).

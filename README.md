@@ -48,11 +48,11 @@ then moves to the front with the pinned ones (it does not count towards the eigh
 button) to open the Library: everything you have, games and apps together, in a grid that's easy to scan
 through. Inside it the top bar shows only **Library**, and ○ closes it again – you are back on the Library card. Press ↑ from a
 card in the first row that sits right under the **Sort** button to reach it, and ✕ to sort by
-name or by what you added most recently. From every other card of the first row ↑ goes straight to the top bar.
+name or by what you added most recently. From every other card of the first row ↑ goes straight to the cog wheel.
 
 There are no button hints on screen: the whole menu is navigated with the D-pad. Press ↑ from the first thing on a
 tab (the game, the first row of the Library, the first track) to select the top bar. **Games**, **Music** and the
-**cog wheel** are buttons there (inside the Library: **Library** and the cog wheel): ← → move between them, ✕ on a tab opens it, and ✕ on the cog wheel opens the
+**cog wheel** are buttons there (inside the Library the word **Library** is only a title: just the cog wheel can be selected): ← → move between them, ✕ on a tab opens it, and ✕ on the cog wheel opens the
 settings. ↓ takes you back down to where you were (the Sort button, if you came from there) and ○ to the game that is
 selected. L and R switch between Games and Music at any time (inside the Library they do nothing: ○ closes it). The card you have selected stays large when the focus moves to the top bar,
 the Sort button or the Start and ⋯ buttons; only its white ring goes away, so it's clear what has the focus.

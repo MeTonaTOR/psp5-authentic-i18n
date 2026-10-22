@@ -10,9 +10,9 @@ enum { UI_NONE, UI_LAUNCH, UI_SETTINGS, UI_INFO, UI_DELETE, UI_SAVES,
        UI_SLEEP, UI_SHUTDOWN, UI_RESTART, UI_RECOVERY /* the power popup of the SELECT button */ };
 /* Games is Home (home.h): the pinned cards, the ones opened last and, at the far right, the Library card. Music has the music.
  * Library is not a tab of the top bar: it is a screen of its own that the Library card opens (✕) and ○ closes. It shows everything,
- * and while it is open the top bar has only "Library" in it, in the place of Games. */
+ * and while it is open the top bar has only the word "Library" in it, in the place of Games (it cannot be selected). */
 enum { TAB_GAMES, TAB_MUSIC, TAB_LIBRARY, TAB_COUNT };
-/* what the top bar can have selected (Ui.top_focus): a tab (0 .. TAB_COUNT - 1) or the cog wheel */
+/* what the top bar can have selected (Ui.top_focus): Games or Music, or the cog wheel (inside the Library only the cog wheel) */
 enum { TOP_COG = TAB_COUNT };
 
 /* the choices of the options popup (menu_item) */
@@ -73,7 +73,7 @@ typedef struct {
     float card_ring;     /* 0..1: how visible the ring around the selected card is: gone while the Sort button, Start / Options or the top bar is selected (the card itself keeps its size) */
     int btn_focus;       /* Games: 0 = the card, 1 = the Start button under it, 2 = the Options button next to it */
     float btn_anim[2];   /* 0..1: how selected Start / Options look */
-    int top_focus;       /* -1 = the top bar is not selected, else a tab (TAB_*) or TOP_COG: ↑ from the first thing of a tab gets here */
+    int top_focus;       /* -1 = the top bar is not selected, else TAB_GAMES, TAB_MUSIC or TOP_COG: ↑ from the first thing of a tab gets here */
     float top_anim[TOP_COG + 1]; /* 0..1: how selected each tab / the cog wheel looks */
     float grid_scroll;   /* animerad översta rad */
     int grid_target;     /* raden som ska stå överst */
