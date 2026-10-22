@@ -1,0 +1,44 @@
+/* psp5 – made by Mille Weber */
+#ifndef SOUND_H
+#define SOUND_H
+
+/* Gränssnittsljud: inspelade (PSP5/sounds/<namn>.wav på lagringen) eller, om filen saknas, inbyggda
+ * som räknas fram vid start. */
+typedef enum {
+    SND_MOVE,    /* bläddra, byta flik */
+    SND_SELECT,  /* välja / gå in, reglage, öppna meny, starta spel */
+    SND_BACK,    /* tillbaka */
+    SND_ERROR,   /* något gick inte */
+    SND_BOOT,    /* startskärmen */
+    SND_COUNT
+} SoundId;
+
+/* Skapar ljuden och startar mixertråden. */
+void sound_init(void);
+/* Stoppar tråden, släpper ljudkanalen och frigör minnet. */
+void sound_term(void);
+void sound_play(SoundId id);
+/* Väntar (högst timeout_ms) tills inga ljud spelas. */
+void sound_wait(int timeout_ms);
+/* 1 när ljuden är framräknade (görs i bakgrunden efter sound_init) */
+int sound_ready(void);
+/* Räknar fram startljudet igen i bakgrunden (startskärmen efter viloläge).
+ * sound_ready() är 0 tills det är klart. */
+void sound_prepare_boot(void);
+/* Startljudet räknas inte fram vid start (felsäker start utan startskärm).
+ * Anropas före sound_init. */
+void sound_skip_boot(void);
+/* Frigör ett ljud som inte behövs mer (startljudet efter startskärmen). */
+void sound_release(SoundId id);
+/* Tonar snabbt ut allt som spelas (t.ex. när startskärmen hoppas över). */
+void sound_fade_out(void);
+
+/* På/av, sparas i ms0:/PSP5/psp5.cfg (se config.c) */
+extern unsigned char g_sound_on;
+
+#ifdef PSP5_TEST
+/* testbygge: spara ljuden som WAV för att kunna lyssna på datorn */
+void sound_dump(const char *dir);
+#endif
+
+#endif
