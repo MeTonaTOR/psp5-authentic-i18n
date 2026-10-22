@@ -5,7 +5,7 @@ on the PSP's 480×272 screen. You move through it with the D-pad alone.
 
 psp5-authentic is a fork of [psp5](https://github.com/08Weber/psp5) by Mille Weber (08Weber), based on psp5 v1.5.3. It has
 one goal of its own: to be **as authentic as possible to its home console counterpart**. Where the console does something,
-this fork does it the same way. Version 1.0.0 is the first release; everything that changed compared with psp5 is in the
+this fork does it the same way. This is version 1.1.0 (1.0.0 was the first release); everything that changed compared with psp5 is in the
 [release notes](CHANGELOG.md). Many thanks to Mille Weber – all of this stands on that work.
 
 <table>
@@ -94,7 +94,8 @@ Works on the **PSP-1000, 2000, 3000 and PSP Go** with **ARK-4 or ARK-5**; it ada
 version (the PSP-1000 has no extra memory or USB charging, ARK-4 has fewer CPU speeds). The PS Vita isn't supported.
 
 Every update is tested on a **PSP-1000**, the only device used for testing. The other models and the two ARK versions are
-expected to work but aren't tested separately, and the PSP Go fixes could not be tried on a PSP Go. Claude also runs
+expected to work but aren't tested separately. The PSP Go fixes could not be tried by us on a PSP Go; one of them (the games on
+the Memory Stick Micro showing up with ARK-4) was tried by a PSP Go owner, who reported that it works. Claude also runs
 automated checks on a PC; they are not part of this repository. If something behaves oddly on your PSP, please open an issue
 and tell us what you saw and which PSP and ARK you have.
 

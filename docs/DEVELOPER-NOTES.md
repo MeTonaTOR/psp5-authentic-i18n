@@ -20,9 +20,30 @@ into psp5 instead of the XMB.
 - **Back to arkMenu:** copy `ARK_01234/VBOOT_ARKMENU.PBP` to `VBOOT.PBP` (a copy is also in `backup/`).
 - An ARK update can overwrite `VBOOT.PBP` – then copy `dist/PSP/GAME/PSP5/EBOOT.PBP` in as `VBOOT.PBP` again.
 
-## After 1.0.0 (next version)
+## After 1.1.0 (next version)
 
-All changes after 1.0.0 are noted here (and under *Unreleased* in `CHANGELOG.md`) until the next version is released.
+All changes after 1.1.0 are noted here (and under *Unreleased* in `CHANGELOG.md`) until the next version is released.
+
+(Nothing yet.)
+
+## Version 1.1.0 (psp5-authentic)
+
+Everything that changed after 1.0.0 – see `CHANGELOG.md` for the version written for users.
+
+- **PSP Go with ARK-4: the games of the Memory Stick Micro show up when psp5 runs from the internal storage** (`Makefile`):
+  `SFOFLAGS = -d EFAWARE=1` (after `PSP_EBOOT_TITLE`) adds the integer entry `EFAWARE` = 1 to the EBOOT's PARAM.SFO (the PSPSDK's
+  `mksfoex -d`; checked by reading the SFO of the built EBOOT: `EFAWARE: 1`, the file is 28 bytes bigger). ARK-4 then starts psp5
+  from the internal storage with the Memory Stick as `ms0:` (psp5 itself on `ef0:`), so `scan.c` finds both: `ef0:` always, `ms0:`
+  when it is a real stick, as since 1.0.0. There is no change in the code. The setting is in every build (ARK-5, ARK-4, PSP Go and
+  the other models); ARK-5 and the other models are not tested separately. It was found with a test build
+  (`psp5-authentic-TEST-PSPGo-ARK4-efaware-v2.zip`, ARK-4, otherwise the same as the build of that day): a PSP Go owner with
+  ARK-4 reported that it works. A recent ARK-4 is needed. The CI build (`.github/workflows/build.yml`) gets the flag too, since it
+  uses the same Makefile.
+- **Version 1.1.0** (`settings.c`, `tools/make_release.py`, `INSTALL.md`, `README.md`): the Version row shows `1.1.0 (ARK-4)` /
+  `1.1.0 (ARK-5)`, `make_release.py` defaults to 1.1.0 and the zips are called `psp5-authentic-v1.1.0-…`. The README and
+  `INSTALL.md` say 1.1.0 and tell about the PSP Go test.
+
+The entries below were written between 1.0.0 and 1.1.0.
 
 - **Settings → psp5 → Show battery percentage** (`config.c`, `settings.c`, `ui.c`, `lang.c`): new own setting `g_battery_pct`
   (`batterypct=0|1` in `psp5.cfg`, default 0; `config_load` only changes it when the line is there, so a file from 1.0.0 keeps it

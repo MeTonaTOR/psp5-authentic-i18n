@@ -3,7 +3,14 @@
 All notable changes of **psp5-authentic**, a fork of [psp5](https://github.com/08Weber/psp5) by Mille Weber (08Weber).
 Newest first. Changes that are not in a release yet are under *Unreleased*.
 
-## Unreleased
+## 1.1.0 – the Library card, the battery percentage and a PSP Go fix
+
+### PSP Go
+
+- **PSP Go with ARK-4: the games on the Memory Stick Micro show up now**, together with the ones on the internal storage, when
+  psp5 is started from the internal storage. psp5's start file now asks ARK-4 to start it from the internal storage with the
+  Memory Stick as `ms0:`. A PSP Go owner with ARK-4 reported that this works. It needs a recent ARK-4. The setting is in every
+  download; ARK-5 and the other PSP models are not tested separately.
 
 ### Library
 
@@ -34,9 +41,19 @@ Newest first. Changes that are not in a release yet are under *Unreleased*.
   the cog wheel stays where it was; with it off, it is 5 px further left and the tabs get 5 px less room.
 - **A PSP without a battery shows no battery icon and no number** (before, an empty battery was drawn). The cog wheel stays put.
 
+### Settings
+
+- The **Version** row in *Settings → psp5* shows 1.1.0.
+
 ### Docs
 
-- The README is rewritten: shorter and clearer, with new screenshots.
+- The README is rewritten: shorter and clearer, with new screenshots. INSTALL.md has the new download names.
+
+### Downloads and installing
+
+`psp5-authentic-v1.1.0-ARK5.zip`, `-ARK4.zip`, `-PSPGo-ARK5.zip` and `-PSPGo-ARK4.zip`: see [INSTALL.md](INSTALL.md). They use
+the same folders as before (`PSP/GAME/PSP5`, `PSP5`), so they replace an installed 1.0.0 (or psp5) and keep your settings and
+covers.
 
 ## 1.0.0 – the first release of psp5-authentic
 

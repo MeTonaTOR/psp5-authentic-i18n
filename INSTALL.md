@@ -1,6 +1,6 @@
 # Installing psp5-authentic
 
-*psp5-authentic 1.0.0 – a fork of psp5 v1.5.3 by Mille Weber ([08Weber/psp5](https://github.com/08Weber/psp5))*
+*psp5-authentic 1.1.0 – a fork of psp5 v1.5.3 by Mille Weber ([08Weber/psp5](https://github.com/08Weber/psp5))*
 
 **You need:** a PSP with **ARK-4 or ARK-5** (PSP-1000, 2000, 3000 or PSP Go) and a **USB cable**.
 
@@ -13,10 +13,10 @@ Not sure which ARK you have? In the XMB, press **SELECT**. ARK's menu shows *ARK
 
 | Your PSP | Download this |
 |---|---|
-| PSP-1000, 2000 or 3000 with **ARK-5** | `psp5-authentic-v1.0.0-ARK5.zip` |
-| PSP-1000, 2000 or 3000 with **ARK-4** | `psp5-authentic-v1.0.0-ARK4.zip` |
-| **PSP Go** with **ARK-5** | `psp5-authentic-v1.0.0-PSPGo-ARK5.zip` |
-| **PSP Go** with **ARK-4** | `psp5-authentic-v1.0.0-PSPGo-ARK4.zip` |
+| PSP-1000, 2000 or 3000 with **ARK-5** | `psp5-authentic-v1.1.0-ARK5.zip` |
+| PSP-1000, 2000 or 3000 with **ARK-4** | `psp5-authentic-v1.1.0-ARK4.zip` |
+| **PSP Go** with **ARK-5** | `psp5-authentic-v1.1.0-PSPGo-ARK5.zip` |
+| **PSP Go** with **ARK-4** | `psp5-authentic-v1.1.0-PSPGo-ARK4.zip` |
 
 You'll find them under [Releases](../../releases). Unzip the one you downloaded.
 
@@ -57,7 +57,8 @@ To get to the XMB from there: settings → *Power and USB* → *Exit to XMB*.
 | Homebrew, PSN and PS1 games | `PSP/GAME` |
 | Music (`.mp3`) | `MUSIC` (sub-folders are fine) |
 
-On a PSP Go, psp5 looks in these folders on both the internal storage and a Memory Stick Micro.
+On a PSP Go, psp5 looks in these folders on both the internal storage and a Memory Stick Micro. (With ARK-4 this needs a
+recent ARK-4 when psp5 is started from the internal storage.)
 
 ## Buttons
 

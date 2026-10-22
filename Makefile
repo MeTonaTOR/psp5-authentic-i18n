@@ -25,6 +25,8 @@ PSP_FW_VERSION = 660
 
 EXTRA_TARGETS = EBOOT.PBP
 PSP_EBOOT_TITLE = psp5
+# EFAWARE: on a PSP Go, ARK-4 starts psp5 from the internal storage with the Memory Stick as ms0: (so the games on both are found)
+SFOFLAGS = -d EFAWARE=1
 PSP_EBOOT_ICON = res/ICON0.PNG
 PSP_EBOOT_PIC1 = res/PIC1.PNG
 
