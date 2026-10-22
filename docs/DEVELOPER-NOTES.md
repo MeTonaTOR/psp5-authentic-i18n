@@ -45,6 +45,29 @@ All changes after 1.0.0 are noted here (and under *Unreleased* in `CHANGELOG.md`
   animation, toggles with ✕, is saved once), `ui/stubs.c`, `ui/popup_sig.h` (records the text of a drawing call). The test font is
   as wide at every size, so a language whose tabs are at the smallest size in the test (Japanese with "100%") is not measured there.
 
+- **README rewritten, release notes shortened, screenshots added** (`README.md`, `CHANGELOG.md`, `docs/screenshots/`; docs only, no code):
+  - README: ~190 -> ~140 lines. Order: intro (fork, goal, thanks), screenshot table, "What you get" (one short bullet per feature, no
+    button lists inside), "Buttons" (short table; the full one stays in `INSTALL.md`), Install (+ safe start / hold SELECT), "What has
+    been tested", "About this fork", Building, Thanks, License. The covers section is one sentence that points to `INSTALL.md`.
+    Nothing about "PS5" (the theme list in the app shows that name, so no screenshot of the Theme page is used).
+  - The screenshot table is HTML (`<table>`, two columns, a caption under each picture) because a Markdown table can't have
+    captions under the images without a duplicated header row. Eight PNGs in `docs/screenshots/`: `games`, `options`, `library`,
+    `saved-data`, `music`, `settings`, `theme` (the XMB wave look), `startup` (Cosmic Red), 960 x 544 each (~700 KB in all).
+  - CHANGELOG: same facts, shorter bullets. *Unreleased* is grouped into Library / Top bar / Docs, 1.0.0 keeps its groups.
+    Some 1.0.0 details that only matter to developers were dropped from there (they are in these notes): the popup look "lives
+    in `popup.c`", the faint light fill of the popup panel, the 60 % beam is kept.
+  - How the screenshots are made: the real app runs in **PPSSPPHeadless** (built from source, `--graphics=software`) with a
+    scratch copy of the app built with `-DPSP5_TEST`. In that copy only, `testrun_frame` writes the finished frame (the 512 x 272
+    x 4 byte buffer it is given, at `0x44000000 + s_draw`) to `ms0:/PSP5/shots/NAME.raw` for the `shot NAME` step and goes on at
+    once (the repo's version waits for the Windows script to photograph the window), and the app calls `sceKernelExitGame()` when the
+    script is over. `raw2png.py` crops the frames to 480 x 272; the README images are those enlarged 2 x with nearest-neighbour.
+    PPSSPP's own flash0 fonts are used (copied to `PSP/NAND/flash0`), so the text is PPSSPP's replacement font, not the PSP's.
+    `faketime` fixes the clock at 10:09; `battery 82` and `charging 1` in the script show the battery with its percentage and the
+    bolt (`batterypct=1` in `psp5.cfg`). The demo data (16 invented games with drawn art, nine saves, five MP3 files with album
+    art) comes from `make_shot_data.py`, which uses the helpers of `tools/make_testdata.py`.
+  - The kit (generator, run script, the eight button scripts, the patch, a README with the PPSSPP build flags) is in
+    `screenshot-kit/` next to `host-tests/` in the hand-off bundle, **not in git**. Run it again whenever the look changes.
+
 - **Top bar: the number closer to the battery, the cog wheel further from it** (`ui.c`): `TOP_GAP` (clock to what is left of it, 10),
   `BAT_W` (battery body 20 + terminal 2), `BAT_GAP` (battery to its number, was 10, now 5) and `COG_GAP` (battery's left edge to the
   cog wheel's centre, was 22, now 27) replace the literals 32 / 22 / 10 in `draw_top_bar`. `gx = bx - COG_GAP`, tab
