@@ -23,14 +23,24 @@ static const struct {
     { 0x0164, 'T', DIAC_CARON, 1 }, { 0x0165, 't', DIAC_TICK, 0 },
     { 0x016E, 'U', DIAC_RING, 1 },  { 0x016F, 'u', DIAC_RING, 0 },
     { 0x017D, 'Z', DIAC_CARON, 1 }, { 0x017E, 'z', DIAC_CARON, 0 },
+    /* Polish letters absent from the PSP Latin system fonts. */
+    { 0x0104, 'A', DIAC_OGONEK, 1 }, { 0x0105, 'a', DIAC_OGONEK, 0 },
+    { 0x0106, 'C', DIAC_ACUTE, 1 }, { 0x0107, 'c', DIAC_ACUTE, 0 },
+    { 0x0118, 'E', DIAC_OGONEK, 1 }, { 0x0119, 'e', DIAC_OGONEK, 0 },
+    { 0x0141, 'L', DIAC_STROKE, 1 }, { 0x0142, 'l', DIAC_STROKE, 0 },
+    { 0x0143, 'N', DIAC_ACUTE, 1 }, { 0x0144, 'n', DIAC_ACUTE, 0 },
+    { 0x00D3, 'O', DIAC_ACUTE, 1 }, { 0x00F3, 'o', DIAC_ACUTE, 0 },
+    { 0x015A, 'S', DIAC_ACUTE, 1 }, { 0x015B, 's', DIAC_ACUTE, 0 },
+    { 0x0179, 'Z', DIAC_ACUTE, 1 }, { 0x017A, 'z', DIAC_ACUTE, 0 },
+    { 0x017B, 'Z', DIAC_DOT, 1 },   { 0x017C, 'z', DIAC_DOT, 0 },
 };
 #define N_LETTERS (int)(sizeof(LETTERS) / sizeof(LETTERS[0]))
 
-/* All of them are two bytes in UTF-8: 0xC4 or 0xC5, then 0x80-0xBF. */
+/* These Latin Extended letters use two-byte UTF-8 sequences (C3, C4 or C5). */
 int diac_maybe(const char *s)
 {
     for (; *s; s++)
-        if ((unsigned char)*s == 0xC4 || (unsigned char)*s == 0xC5)
+        if ((unsigned char)*s == 0xC3 || (unsigned char)*s == 0xC4 || (unsigned char)*s == 0xC5)
             return 1;
     return 0;
 }
@@ -41,7 +51,7 @@ int diac_split(const char *s, char *out, int out_size, DiacMark *marks, int max_
     while (*s) {
         unsigned char c = (unsigned char)*s;
         int hit = -1;
-        if ((c == 0xC4 || c == 0xC5) && ((unsigned char)s[1] & 0xC0) == 0x80) {
+        if ((c == 0xC3 || c == 0xC4 || c == 0xC5) && ((unsigned char)s[1] & 0xC0) == 0x80) {
             unsigned cp = ((c & 0x1Fu) << 6) | ((unsigned char)s[1] & 0x3Fu);
             for (int i = 0; i < N_LETTERS; i++)
                 if (LETTERS[i].cp == cp) {
@@ -197,6 +207,34 @@ int diac_mesh(const DiacMark *m, float x, float adv, float base, float size, int
         float top = base - (is_d ? ASC + 0.4f : TOP_T + 1.4f) * size;
         p[0] = sx + 1.0f * size, p[1] = top;
         p[2] = sx + 0.2f * size, p[3] = top + 3.4f * size;
+        return stroke(p, 2, 0, fmaxf(0.85f, 1.2f * size) * weight, out, max);
+    }
+    case DIAC_ACUTE: { /* Polish acute accent: ć ń ó ś ź */ 
+        float sx = cx - 1.0f * size, sy = base - (m->upper ? CAP : XH) * size - 1.0f * size;
+        p[0] = sx - 0.8f * size; p[1] = sy - 2.5f * size;
+        p[2] = sx + 1.5f * size; p[3] = sy - 5.8f * size;
+        return stroke(p, 2, 0, fmaxf(0.85f, 1.2f * size) * weight, out, max);
+    }
+    case DIAC_DOT: { /* ż / Ż */
+        float r = fmaxf(0.8f, 1.15f * size);
+        float cy = base - (m->upper ? CAP : XH) * size - 3.4f * size;
+        for (int i = 0; i < 8; i++) {
+            float a = (float)i / 8 * 6.2831853f;
+            p[i * 2] = cx + cosf(a) * r;
+            p[i * 2 + 1] = cy + sinf(a) * r;
+        }
+        return stroke(p, 8, 1, fmaxf(0.8f, size) * weight, out, max);
+    }
+    case DIAC_OGONEK: { /* ą / ę: a small hook below the baseline */
+        float sx = x + adv * 0.62f;
+        p[0] = sx; p[1] = base - 1.0f * size;
+        p[2] = sx + 1.0f * size; p[3] = base + 1.0f * size;
+        p[4] = sx + 2.5f * size; p[5] = base + 0.5f * size;
+        return stroke(p, 3, 0, fmaxf(0.85f, 1.15f * size) * weight, out, max);
+    }
+    case DIAC_STROKE: { /* ł / Ł: diagonal stroke through the letter */
+        p[0] = x + adv * 0.18f; p[1] = base - (m->upper ? CAP * 0.55f : XH * 0.55f) * size;
+        p[2] = x + adv * 0.82f; p[3] = base - (m->upper ? CAP * 0.10f : XH * 0.10f) * size;
         return stroke(p, 2, 0, fmaxf(0.85f, 1.2f * size) * weight, out, max);
     }
     case DIAC_RING: { /* U and u */

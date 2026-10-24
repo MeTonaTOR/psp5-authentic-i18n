@@ -24,6 +24,7 @@
 #include "popup.h"
 #include "config.h"
 #include "testrun.h"
+#include "categories.h"
 
 /* layout (480×272) */
 #define MARGIN     24.0f
@@ -70,7 +71,10 @@
 #define LIGHT       RGBA(238, 238, 242, 255)
 #define DARK        RGBA(18, 18, 22, 255)
 
-static const StrId TAB_NAMES[TAB_COUNT] = { S_TAB_GAMES, S_TAB_MUSIC, S_TAB_LIBRARY };
+static int library_category_count(const Ui *ui, int category);
+static const char *category_name(int category) { return category == GAME_CATEGORY_PSP ? "PSP" : category == GAME_CATEGORY_PS1 ? "PS1" : L(S_TAB_EMULATORS); }
+static int top_item_active(const Ui *ui, int item) { return item == TOP_MUSIC ? ui->tab == TAB_MUSIC : ui->tab != TAB_MUSIC && ui->lib_category == item; }
+static const char *top_item_name(const Ui *ui, int item) { (void)ui; return item == TOP_MUSIC ? L(S_TAB_MUSIC) : category_name(item); }
 
 static float clampf(float v, float lo, float hi) { return v < lo ? lo : v > hi ? hi : v; }
 static float lerpf(float a, float b, float t) { return a + (b - a) * t; }
@@ -113,17 +117,14 @@ int ui_selected(const Ui *ui)
     return i >= 0 ? i : -1; /* (the Library card is not a game) */
 }
 
-/* The tabs the top bar shows, left to right: Games and Music; inside the Library only the word "Library", where Games would be
- * (it is not a tab: update_top_bar does not let it be selected) */
-static int top_tabs(const Ui *ui, int out[2])
+/* Main navigation: populated game categories followed by Music. */
+static int top_tabs(const Ui *ui, int out[4])
 {
-    if (ui->tab == TAB_LIBRARY) {
-        out[0] = TAB_LIBRARY;
-        return 1;
-    }
-    out[0] = TAB_GAMES;
-    out[1] = TAB_MUSIC;
-    return 2;
+    int n = 0;
+    for (int cat = GAME_CATEGORY_PSP; cat <= GAME_CATEGORY_EMULATOR; cat++)
+        if (library_category_count(ui, cat)) out[n++] = cat;
+    out[n++] = TOP_MUSIC;
+    return n;
 }
 
 /* biblioteket sorteras efter namn eller efter när filen lades till – UMD-skivan alltid först */
@@ -155,6 +156,30 @@ static void sort_library(Ui *ui)
     qsort(v->idx, v->count, sizeof(int), ui->lib_sort ? cmp_recent : cmp_name);
 }
 
+static void relist(Ui *ui, int removed, int added_front, int keep_place);
+
+static int library_category_count(const Ui *ui, int category)
+{
+    int count = 0;
+    if (!ui || !ui->list) return 0;
+    for (int i = 0; i < ui->list->count; i++)
+        if (categories_get(&ui->list->items[i]) == (GameCategory)category) count++;
+    return count;
+}
+
+static void set_library_category(Ui *ui, int category)
+{
+    if (category < GAME_CATEGORY_PSP || category > GAME_CATEGORY_EMULATOR ||
+        !library_category_count(ui, category) || category == ui->lib_category) return;
+    ui->lib_category = category;
+    relist(ui, -1, 0, 1);
+    ui->grid_scroll = 0;
+    ui->grid_target = 0;
+    ui->sel[TAB_LIBRARY] = 0;
+    ui->pos = 0.3f;
+    sound_play(SND_MOVE);
+}
+
 static void build_views(Ui *ui)
 {
     for (int t = 0; t < TAB_COUNT; t++) {
@@ -165,7 +190,8 @@ static void build_views(Ui *ui)
     if (homev->idx)
         homev->count = home_build(ui->list, homev->idx, ui->list->count + 1); /* Home: the disc, the pinned cards, the ones opened last, the Library card */
     for (int i = 0; lib->idx && i < ui->list->count; i++)
-        lib->idx[lib->count++] = i;
+        if (categories_get(&ui->list->items[i]) == (GameCategory)ui->lib_category)
+            lib->idx[lib->count++] = i;
     sort_library(ui);
 }
 
@@ -204,26 +230,17 @@ static void set_tab(Ui *ui, int tab, SoundId sound)
         loader_set_view(view(ui));
 }
 
-/* L / R and ✕ on a tab of the top bar: Games and Music. Inside the Library there is nothing to switch to. */
+/* Main navigation switches between populated categories and Music. */
 static void switch_tab(Ui *ui, int tab)
 {
-    if (ui->tab == TAB_LIBRARY || tab < TAB_GAMES || tab > TAB_MUSIC)
-        return;
-    set_tab(ui, tab, SND_MOVE);
+    if (tab == TOP_MUSIC) set_tab(ui, TAB_MUSIC, SND_MOVE);
+    else if (tab >= GAME_CATEGORY_PSP && tab <= GAME_CATEGORY_EMULATOR) {
+        if (ui->tab != TAB_LIBRARY) set_tab(ui, TAB_LIBRARY, SND_MOVE);
+        set_library_category(ui, tab);
+    }
 }
-
-/* ✕ on the Library card of Games: the Library opens ... */
-static void open_library(Ui *ui)
-{
-    set_tab(ui, TAB_LIBRARY, SND_SELECT);
-}
-
-/* ... and ○ (the button that goes back) closes it: Games again, on the card that was selected (the Library card, or the one
- * that was put on Home from the Library) */
-static void close_library(Ui *ui)
-{
-    set_tab(ui, TAB_GAMES, SND_BACK);
-}
+static void open_library(Ui *ui) { set_tab(ui, TAB_LIBRARY, SND_SELECT); }
+static void close_library(Ui *ui) { (void)ui; }
 
 /* --- titel --- */
 
@@ -285,12 +302,21 @@ void ui_init(Ui *ui, const EntryList *list, int confirm_circle, int can_launch)
     ui->label_for = -2;
     ui->lib_label_for = -2;
     ui->cover_for = -2;
+    ui->lib_category = GAME_CATEGORY_PSP;
+    if (!library_category_count(ui, ui->lib_category)) {
+        for (int cat = GAME_CATEGORY_PS1; cat <= GAME_CATEGORY_EMULATOR; cat++) {
+            if (library_category_count(ui, cat)) {
+                ui->lib_category = cat;
+                break;
+            }
+        }
+    }
     ui->tab_anim = 1;
     ui->top_focus = -1;
     ui->card_ring = 1;
     home_load(list);
     build_views(ui);
-    ui->tab = TAB_GAMES; /* (it always has the Library card) */
+    ui->tab = TAB_LIBRARY; /* start directly in the category grid */
     ui->pos = 1.5f; /* korten glider in vid start */
     loader_set_view(view(ui));
 }
@@ -319,13 +345,27 @@ static void relist(Ui *ui, int removed, int added_front, int keep_place)
         if (t != TAB_MUSIC && v->count && v->idx)
             chosen[t] = remap_index(v->idx[ui->sel[t]], removed, added_front);
         /* står man först i fliken blir en nyinsatt skiva markerad */
-        if (added_front && (t == TAB_GAMES || t == TAB_LIBRARY) && ui->sel[t] == 0)
+        if (added_front && t == TAB_LIBRARY && ui->sel[t] == 0)
             chosen[t] = 0;
         free(v->idx);
         v->idx = NULL;
         v->count = 0;
     }
     build_views(ui);
+    /* If deleting or moving the last item empties the active category, select the next populated category. */
+    if (ui->tab == TAB_LIBRARY && !ui->views[TAB_LIBRARY].count) {
+        for (int cat = GAME_CATEGORY_PSP; cat <= GAME_CATEGORY_EMULATOR; cat++) {
+            if (library_category_count(ui, cat)) {
+                ui->lib_category = cat;
+                LoaderView *lib = &ui->views[TAB_LIBRARY];
+                for (int i = 0; i < ui->list->count; i++)
+                    if (categories_get(&ui->list->items[i]) == (GameCategory)cat)
+                        lib->idx[lib->count++] = i;
+                sort_library(ui);
+                break;
+            }
+        }
+    }
     for (int t = 0; t < TAB_COUNT; t++) {
         if (t == TAB_MUSIC)
             continue;
@@ -435,12 +475,7 @@ static void home_do(Ui *ui, int item)
         snprintf(text, sizeof(text), "%s", L(S_HOME_UNPINNED));
     }
     home_changed(ui);
-    if (tab == TAB_LIBRARY && (item == MI_ADD || item == MI_PIN)) { /* the Games tab opens on the card that was just put there */
-        const LoaderView *h = &ui->views[TAB_GAMES];
-        for (int p = 0; p < h->count; p++)
-            if (h->idx[p] == index)
-                ui->sel[TAB_GAMES] = p;
-    }
+    /* Home pinning remains available, but the category grid is the primary game view. */
     ui_toast(ui, text);
     sound_play(SND_SELECT);
 }
@@ -469,6 +504,7 @@ static void menu_build(Ui *ui, const UiInput *in)
     }
     const Entry *e = &ui->list->items[index];
     ui->menu_item[ui->menu_n++] = MI_SAVES;
+    ui->menu_item[ui->menu_n++] = MI_MOVE_TO;
     if (e->type != ENTRY_UMD && gameops_target(e, path, sizeof(path), &is_dir))
         ui->menu_item[ui->menu_n++] = MI_DELETE;
     ui->menu_item[ui->menu_n++] = MI_INFO;
@@ -687,7 +723,7 @@ static void update_music(Ui *ui, const UiInput *in, float dt, int top)
     vert.lx = 128;
     int move = top ? 0 : step_input(ui, &vert, dt, 1); /* (the top bar reads the repeat state itself) */
     if (move == -2 && ui->repeat_held == 0 && (!n || ui->music_sel == 0)) { /* a new press, not a held button */
-        ui->top_focus = TAB_MUSIC;
+        ui->top_focus = TOP_MUSIC;
         sound_play(SND_MOVE);
         return;
     }
@@ -819,9 +855,8 @@ static int update_top_bar(Ui *ui, const UiInput *in, float dt)
             ui->lib_focus = 0; /* ○ is always "back to the game", also when ↑ came from the Sort button */
         sound_play(move == 2 ? SND_MOVE : SND_BACK);
     } else if (move == -1 || move == 1) {
-        int items[3], n = 0, at = 0; /* what can be selected: the tabs (not the word "Library"), then the cog wheel */
-        if (ui->tab != TAB_LIBRARY)
-            n = top_tabs(ui, items);
+        int items[5], n = 0, at = 0;
+        n = top_tabs(ui, items);
         items[n++] = TOP_COG;
         for (int k = 0; k < n; k++)
             if (items[k] == ui->top_focus)
@@ -839,10 +874,8 @@ static int update_top_bar(Ui *ui, const UiInput *in, float dt)
         } else {
             int tab = ui->top_focus;
             ui->top_focus = -1;
-            if (tab != ui->tab)
-                switch_tab(ui, tab);
-            else
-                sound_play(SND_SELECT);
+            if (!top_item_active(ui, tab)) switch_tab(ui, tab);
+            else sound_play(SND_SELECT);
         }
     }
     return UI_NONE;
@@ -888,7 +921,18 @@ int ui_update(Ui *ui, const UiInput *in, float dt)
         }
         if (in->pressed & ok) {
             int item = ui->menu_item[ui->menu_sel];
-            if (item == MI_DELETE) {
+            if (item == MI_MOVE_TO && ui->menu_kind == MENU_CARD) {
+                ui->menu_kind = MENU_MOVE;
+                ui->menu_n = 4;
+                ui->menu_item[0] = MI_MOVE_PSP;
+                ui->menu_item[1] = MI_MOVE_PS1;
+                ui->menu_item[2] = MI_MOVE_EMULATOR;
+                ui->menu_item[3] = MI_CANCEL;
+                ui->menu_sel = 0;
+                ui->menu_stage = 0;
+                ui->menu_dir = 0;
+                sound_play(SND_SELECT);
+            } else if (item == MI_DELETE) {
                 menu_ask_delete(ui);
             } else if (item == MI_REMOVE && (home_state(ui->list, ui_selected(ui)) & HOME_PINNED)) {
                 menu_ask_remove(ui); /* a pinned card is unpinned too: ask first */
@@ -907,7 +951,20 @@ int ui_update(Ui *ui, const UiInput *in, float dt)
                     sound_play(SND_SELECT);
                     return UI_DELETE;
                 }
-                if (item == MI_SORT_NAME || item == MI_SORT_RECENT)
+                if (item == MI_MOVE_PSP || item == MI_MOVE_PS1 || item == MI_MOVE_EMULATOR) {
+                    int index = ui_selected(ui);
+                    if (index >= 0 && index < ui->list->count) {
+                        GameCategory category = item == MI_MOVE_PSP ? GAME_CATEGORY_PSP :
+                            item == MI_MOVE_PS1 ? GAME_CATEGORY_PS1 : GAME_CATEGORY_EMULATOR;
+                        if (categories_set(&ui->list->items[index], category)) {
+                            categories_save(NULL);
+                            ui->lib_category = category;
+                            relist(ui, -1, 0, 1);
+                            ui_toast(ui, L(S_MOVED_TO_CATEGORY));
+                            sound_play(SND_SELECT);
+                        }
+                    }
+                } else if (item == MI_SORT_NAME || item == MI_SORT_RECENT)
                     set_sort(ui, item == MI_SORT_RECENT);
                 else if (item == MI_CANCEL)
                     sound_play(SND_BACK);
@@ -931,14 +988,19 @@ int ui_update(Ui *ui, const UiInput *in, float dt)
     ui->sort_frame = clampf(ui->sort_frame + (ui->lib_focus && ui->top_focus < 0 ? 8 : -8) * dt, 0, 1); /* (not while the top bar is selected) */
     int ring_on = ui->top_focus < 0 && !(ui->tab == TAB_LIBRARY && ui->lib_focus) && !ui->btn_focus; /* the card has the focus */
     ui->card_ring = clampf(ui->card_ring + (ring_on ? 8 : -8) * dt, 0, 1);
-    if (ui->tab != TAB_GAMES || view(ui)->count == 0)
-        ui->btn_focus = 0; /* the buttons belong to a card of the Games tab */
+    if ((ui->tab != TAB_GAMES && ui->tab != TAB_LIBRARY) || view(ui)->count == 0)
+        ui->btn_focus = 0; /* carousel tabs own the Start and Options buttons */
     for (int k = 0; k < 2; k++)
         ui->btn_anim[k] = clampf(ui->btn_anim[k] + (ui->btn_focus == k + 1 ? 8 : -8) * dt, 0, 1);
-    if (in->pressed & PSP_CTRL_LTRIGGER)
-        switch_tab(ui, ui->tab - 1);
-    if (in->pressed & PSP_CTRL_RTRIGGER)
-        switch_tab(ui, ui->tab + 1);
+    int nav_tabs[4], nav_count = top_tabs(ui, nav_tabs);
+    if (in->pressed & (PSP_CTRL_LTRIGGER | PSP_CTRL_RTRIGGER)) {
+        int current = ui->tab == TAB_MUSIC ? TOP_MUSIC : ui->lib_category;
+        int at = 0;
+        for (int i = 0; i < nav_count; i++) if (nav_tabs[i] == current) { at = i; break; }
+        int direction = (in->pressed & PSP_CTRL_LTRIGGER) ? -1 : 1;
+        int next = (at + direction + nav_count) % nav_count;
+        switch_tab(ui, nav_tabs[next]);
+    }
 
     /* the top bar: while a tab or the cog wheel is selected the rest of the screen gets no buttons */
     for (int k = 0; k <= TOP_COG; k++)
@@ -956,23 +1018,23 @@ int ui_update(Ui *ui, const UiInput *in, float dt)
 
     int count = view(ui)->count;
     int *sel = &ui->sel[ui->tab];
-    int grid = ui->tab == TAB_LIBRARY;
+    int grid = 0; /* category tabs use the original Home carousel, not the Library grid */
     int on_sort = grid && ui->lib_focus; /* the Sort button is selected, not a card */
     u32 ok = ui->confirm_circle ? PSP_CTRL_CIRCLE : PSP_CTRL_CROSS;
     u32 back_btn = ui->confirm_circle ? PSP_CTRL_CROSS : PSP_CTRL_CIRCLE;
     int on_btn = ui->btn_focus; /* Games: 1 = Start, 2 = Options (the card stays selected) */
-    if (grid && !on_sort && (in->pressed & back_btn) && ui->intro >= 1) { /* ○ closes the Library, also an empty one (on the Sort button it only goes back to the cards) */
-        close_library(ui);
+    if (grid && !on_sort && (in->pressed & back_btn) && ui->intro >= 1) {
+        enter_top_bar(ui, ui->lib_category);
         return UI_NONE;
     }
-    if ((ui->tab == TAB_GAMES || (grid && !on_sort)) && (in->pressed & PSP_CTRL_START) && count && ui->intro >= 1)
+    if ((ui->tab == TAB_GAMES || ui->tab == TAB_LIBRARY) && (in->pressed & PSP_CTRL_START) && count && ui->intro >= 1)
         open_card_menu(ui, in);
     UiInput sides = *in;
-    if (ui->tab == TAB_GAMES && fabsf((float)in->lx - 128) >= fabsf((float)in->ly - 128))
+    if ((ui->tab == TAB_GAMES || ui->tab == TAB_LIBRARY) && fabsf((float)in->lx - 128) >= fabsf((float)in->ly - 128))
         sides.ly = 128; /* the stick is pushed sideways: that is the cards, not the buttons below them */
-    int move = ui->tab == TAB_MUSIC || top ? 0 : step_input(ui, &sides, dt, grid || ui->tab == TAB_GAMES);
+    int move = ui->tab == TAB_MUSIC || top ? 0 : step_input(ui, &sides, dt, ui->tab == TAB_GAMES || ui->tab == TAB_LIBRARY);
     int fresh = ui->repeat_held == 0; /* a move that is a new press, not a held button repeating: only that enters the top bar */
-    if (ui->tab == TAB_GAMES && count) { /* ↓ to Start, ← → between Start and Options, ↑ or ○ back to the card, ↑ from the card to the top bar */
+    if ((ui->tab == TAB_GAMES || ui->tab == TAB_LIBRARY) && count) { /* carousel: ↓ to Start, ← → between Start and Options */
         if (!on_btn) {
             if (move == 2) {
                 ui->btn_focus = 1;
@@ -1020,9 +1082,7 @@ int ui_update(Ui *ui, const UiInput *in, float dt)
             enter_top_bar(ui, TOP_COG); /* (the word "Library" cannot be selected, so this is the only thing up there) */
         }
         move = 0;
-    } else if (ui->tab == TAB_GAMES && !count && move == -2 && fresh) { /* an empty tab still reaches the top bar (and so the cog wheel) */
-        enter_top_bar(ui, ui->tab);
-    }
+    } else if (ui->tab == TAB_LIBRARY && !count && move == -2 && fresh) enter_top_bar(ui, ui->lib_category);
     if (move && count) {
         int next = *sel + move;
         if (move == 2 || move == -2) {
@@ -1185,38 +1245,31 @@ static void draw_top_bar(Ui *ui)
     gfx_gear(gx, TOP_MID, 7, with_alpha(LIGHT, (0.9f + 0.1f * cog) * a), RGBA(14, 14, 18, (int)(255 * a)));
 
     /* flikarna krymper om de inte får plats (t.ex. långa ryska ord) – mäts bara om när något ändras */
-    static float size = 0.8f, gap = 20, sized_room = -1;
+    static float size = 0.8f, gap = 16, sized_room = -1;
     static int sized_tab = -1;
-    static const char *sized_lang;
-    float room = bx - COG_GAP - 21 - MARGIN; /* the last tab's frame ends 3 px before the cog wheel's */
-    int tabs[2], nt = top_tabs(ui, tabs); /* Games and Music, or only Library inside the Library */
-    if (room != sized_room || ui->tab != sized_tab || L(TAB_NAMES[0]) != sized_lang) {
-        size = 0.8f;
-        gap = 20;
+    float room = bx - COG_GAP - 21 - MARGIN;
+    int tabs[4], nt = top_tabs(ui, tabs);
+    if (room != sized_room || ui->tab != sized_tab) {
+        size = 0.8f; gap = 16;
         for (;;) {
             float w = 0;
-            for (int k = 0; k < nt; k++)
-                w += text_width(size, tabs[k] == ui->tab, L(TAB_NAMES[tabs[k]])) + gap;
-            if (w - gap <= room || size <= 0.56f)
-                break;
-            size -= 0.04f;
-            gap = 14;
+            for (int k = 0; k < nt; k++) w += text_width(size, top_item_active(ui, tabs[k]), top_item_name(ui, tabs[k])) + gap;
+            if (w - gap <= room || size <= 0.56f) break;
+            size -= 0.04f; gap = 12;
         }
-        sized_room = room;
-        sized_tab = ui->tab;
-        sized_lang = L(TAB_NAMES[0]);
+        sized_room = room; sized_tab = ui->tab;
     }
     float x = MARGIN;
     for (int k = 0; k < nt; k++) {
-        int t = tabs[k], active = t == ui->tab;
-        float tw = text_width(size, active, L(TAB_NAMES[t])), pick = smooth(ui->top_anim[t]);
+        int t = tabs[k], active = top_item_active(ui, t);
+        float tw = text_width(size, active, top_item_name(ui, t)), pick = smooth(ui->top_anim[t]);
         if (pick * a > 0.01f) { /* selected with ↑ (not the same as the open tab, which is the bold one) */
             float fy, fh; /* centred on the text, which shrinks in long languages */
             popup_frame_around(popup_label_mid(25, size), TOP_FRAME_H, &fy, &fh);
             popup_choice(x - 9, fy, tw + 18, fh, pick * a);
         }
         text_draw(x, 25, size, active, with_alpha(active ? TEXT_MAIN : mix_color(RGBA(255, 255, 255, 120), TEXT_MAIN, pick), a),
-                  ALIGN_LEFT, L(TAB_NAMES[t]));
+                  ALIGN_LEFT, top_item_name(ui, t));
         x += tw + gap;
     }
 
@@ -1417,6 +1470,10 @@ static const char *menu_label(int item)
 {
     switch (item) {
     case MI_SAVES:        return L(S_SAVES);
+    case MI_MOVE_TO:      return L(S_MOVE_TO);
+    case MI_MOVE_PSP:     return "PSP";
+    case MI_MOVE_PS1:     return "PS1";
+    case MI_MOVE_EMULATOR: return L(S_MOVE_EMULATORS);
     case MI_INFO:         return L(S_INFO);
     case MI_REMOVE:
     case MI_REMOVE_YES:   return L(S_HOME_REMOVE);
@@ -1478,91 +1535,11 @@ static void draw_menu(Ui *ui)
     }
 }
 
-/* Biblioteket: allt i ett rutnät, rubrik med antal och sortering, vald titel nere till vänster. */
+/* Category tabs reuse the original horizontal Home carousel and its Start / Options controls. */
 static void draw_library(Ui *ui)
 {
-    const LoaderView *v = view(ui);
-    float launch = ui->launch < 0 ? 0 : smooth(ui->launch);
-    float a = ui->intro * smooth(ui->tab_anim);
-    float ui_a = a * (1 - smooth(launch * 2));
-    float slide = (1 - smooth(ui->tab_anim)) * 10;
-
-    /* (bakgrunden mörkas av draw_dim, före topplisten) */
-
-    /* rubrik: antal till vänster, sortering till höger */
-    char head[96];
-    snprintf(head, sizeof(head), "%s", L(S_LIB_ALL));
-    text_draw(MARGIN, 53, 0.66f, 0, with_alpha(TEXT_MAIN, ui_a), ALIGN_LEFT, head);
-    char num[16];
-    snprintf(num, sizeof(num), "%d", v->count);
-    float hw = text_width(0.66f, 0, head);
-    text_draw(MARGIN + hw + 8, 53, 0.6f, 0, with_alpha(TEXT_DIM, ui_a), ALIGN_LEFT, num);
-
-    /* the Sort button: selected with ↑ from a card under it, it gets the frame of a chosen entry; ✕ opens the popup. Its frame
-     * is gone for as long as the top bar has the focus (sort_frame), so moving along the top bar never brings it back. */
-    char sort[64];
-    sort_text(ui, sort, sizeof(sort));
-    float sort_w = text_width(SORT_SIZE, 0, sort), on_sort = smooth(ui->sort_anim), sort_shown = smooth(ui->sort_frame);
-    if (sort_shown * ui_a > 0.01f) {
-        float fy, fh; /* centred on the text, whose baseline is at 53 */
-        popup_frame_around(popup_label_mid(53, SORT_SIZE), 22, &fy, &fh);
-        popup_choice(SCREEN_W - MARGIN - sort_w - SORT_PAD, fy, sort_w + 2 * SORT_PAD, fh, sort_shown * ui_a);
-    }
-    text_draw(SCREEN_W - MARGIN, 53, SORT_SIZE, 0, with_alpha(sort_shown > 0.5f ? TEXT_MAIN : TEXT_DIM, ui_a), ALIGN_RIGHT, sort);
-
-    /* korten – klipps under rubriken */
-    int sel = ui->sel[TAB_LIBRARY];
-    float focus_anim = smooth(ui->label_anim), card_focus = focus_anim; /* (the selected card stays large when the focus is elsewhere) */
-    int first_row = (int)floorf(ui->grid_scroll) - 1, last_row = (int)ceilf(ui->grid_scroll) + GRID_ROWS + 1;
-    gfx_clip(0, GRID_Y - 8, SCREEN_W, GRID_BOTTOM - (GRID_Y - 8));
-    float sx = 0, sy = 0, sw = 0, shh = 0;
-    for (int p = first_row * GRID_COLS; p < (last_row + 1) * GRID_COLS && p < v->count; p++) {
-        if (p < 0)
-            continue;
-        int r = p / GRID_COLS, c = p % GRID_COLS;
-        float x = MARGIN + c * (CELL_W + GRID_GAP);
-        float y = GRID_Y + (r - ui->grid_scroll) * ROW_STEP + slide;
-        if (y > SCREEN_H || y + CELL_H < GRID_Y - 8)
-            continue;
-        if (p == sel) { /* ritas sist, ovanpå grannarna */
-            sx = x; sy = y; sw = CELL_W; shh = CELL_H;
-            continue;
-        }
-        /* en rad som bara syns delvis bleknar */
-        float fade = clampf((GRID_BOTTOM - y) / CELL_H, 0, 1) * clampf((y + CELL_H - GRID_Y + 8) / CELL_H, 0, 1);
-        draw_card(ui, v->idx[p], x, y, CELL_W, CELL_H, 0, 0, a * (1 - launch) * fade, 1);
-    }
-    if (sw > 0) {
-        float w = sw + SELECT_GROW_W * card_focus, h = shh + SELECT_GROW_H * card_focus; /* (6 x 4 px more at rest: the edges stay on whole pixels) */
-        float cx = sx + sw / 2, cy = sy + shh / 2;
-        if (launch > 0) { /* startanimation: kortet växer mot mitten */
-            gfx_clip_reset();
-            float g = 1 + launch * 2.4f;
-            w *= g;
-            h *= g;
-            cx = lerpf(cx, SCREEN_W / 2, launch);
-            cy = lerpf(cy, SCREEN_H / 2, launch);
-        }
-        draw_card(ui, v->idx[sel], cx - w / 2, cy - h / 2, w, h, (0.4f + 0.6f * focus_anim) * (1 - on_sort), (0.4f + 0.6f * focus_anim) * smooth(ui->card_ring), a, 1);
-    }
-    gfx_clip_reset();
-
-    /* vald titel med typetikett nere till vänster, på samma rad som Start och Alternativ i Spel */
-    int i = ui_selected(ui);
-    if (i >= 0) {
-        const char *type = type_name(ui->list->items[i].type);
-        float bw = ceilf(text_width(0.5f, 1, type)) + 12;
-        gfx_round_rect(MARGIN, BOTTOM_Y - 8, bw, 15, 3, with_alpha(LIGHT, 0.92f * ui_a));
-        text_draw(MARGIN + bw / 2, BOTTOM_Y + 3.5f, 0.5f, 1, with_alpha(DARK, ui_a), ALIGN_CENTER, type);
-        float tx = MARGIN + bw + 8;
-        float max_w = SCREEN_W - MARGIN - tx;
-        if (ui->lib_label_for != i) {
-            text_ellipsis(ui->lib_label, sizeof(ui->lib_label), ui->list->items[i].title, 0.66f, max_w);
-            ui->lib_label_for = i;
-        }
-        text_draw(tx + (1 - focus_anim) * 6, BOTTOM_Y + 4.5f, 0.66f, 0, with_alpha(TEXT_MAIN, ui_a * focus_anim),
-                  ALIGN_LEFT, ui->lib_label);
-    }
+    draw_row(ui);
+    draw_details(ui);
 }
 
 /* Musikfliken: låtlista till vänster, "spelas nu" med förlopp till höger */
@@ -1755,7 +1732,7 @@ void ui_draw(Ui *ui)
     draw_top_bar(ui);
     if (ui->tab == TAB_MUSIC) {
         draw_music(ui);
-    } else if (view(ui)->count && ui->tab == TAB_LIBRARY) {
+    } else if (ui->tab == TAB_LIBRARY) {
         draw_library(ui);
     } else if (view(ui)->count) {
         draw_row(ui);

@@ -12,8 +12,8 @@ enum { UI_NONE, UI_LAUNCH, UI_SETTINGS, UI_INFO, UI_DELETE, UI_SAVES,
  * Library is not a tab of the top bar: it is a screen of its own that the Library card opens (✕) and ○ closes. It shows everything,
  * and while it is open the top bar has only the word "Library" in it, in the place of Games (it cannot be selected). */
 enum { TAB_GAMES, TAB_MUSIC, TAB_LIBRARY, TAB_COUNT };
-/* what the top bar can have selected (Ui.top_focus): Games or Music, or the cog wheel (inside the Library only the cog wheel) */
-enum { TOP_COG = TAB_COUNT };
+/* top_focus uses category IDs 0..2, TOP_MUSIC, or TOP_COG. */
+enum { TOP_MUSIC = TAB_COUNT, TOP_COG };
 
 /* the choices of the options popup (menu_item) */
 enum { MI_SAVES, MI_INFO, MI_DELETE, MI_DELETE_YES, MI_CANCEL,
@@ -21,10 +21,11 @@ enum { MI_SAVES, MI_INFO, MI_DELETE, MI_DELETE_YES, MI_CANCEL,
        MI_REMOVE_YES, /* ... confirmed, for a pinned card */
        MI_ADD,        /* Add to Home (Library) */
        MI_PIN, MI_UNPIN,
+       MI_MOVE_TO, MI_MOVE_PSP, MI_MOVE_PS1, MI_MOVE_EMULATOR,
        MI_SORT_NAME, MI_SORT_RECENT, /* the sort popup of the Library */
        MI_SLEEP, MI_SHUTDOWN, MI_RESTART, MI_RECOVERY /* the power popup: the same four as Settings > Power and USB */ };
 /* what the popup is for (menu_kind) */
-enum { MENU_CARD, MENU_SORT, MENU_POWER };
+enum { MENU_CARD, MENU_SORT, MENU_POWER, MENU_MOVE };
 
 typedef struct {
     u32 pressed; /* nedtryckta denna bildruta */
@@ -67,13 +68,14 @@ typedef struct {
 
     /* biblioteket: rutnät med allt */
     int lib_sort;        /* 0 = namn, 1 = senast tillagda */
+    int lib_category;    /* selected Library category */
     int lib_focus;       /* 1 = the Sort button at the top right is selected, not a card */
     float sort_anim;     /* 0..1: how selected the Sort button looks */
     float sort_frame;    /* 0..1: how visible its frame is (it is gone while the top bar is selected, ↓ brings it back) */
     float card_ring;     /* 0..1: how visible the ring around the selected card is: gone while the Sort button, Start / Options or the top bar is selected (the card itself keeps its size) */
     int btn_focus;       /* Games: 0 = the card, 1 = the Start button under it, 2 = the Options button next to it */
     float btn_anim[2];   /* 0..1: how selected Start / Options look */
-    int top_focus;       /* -1 = the top bar is not selected, else TAB_GAMES, TAB_MUSIC or TOP_COG: ↑ from the first thing of a tab gets here */
+    int top_focus;       /* -1 = no top focus, else a category ID, TOP_MUSIC or TOP_COG */
     float top_anim[TOP_COG + 1]; /* 0..1: how selected each tab / the cog wheel looks */
     float grid_scroll;   /* animerad översta rad */
     int grid_target;     /* raden som ska stå överst */

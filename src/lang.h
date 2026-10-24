@@ -2,12 +2,8 @@
 #ifndef LANG_H
 #define LANG_H
 
-/* Språk. LANG_AUTO följer PSP:ns systemspråk (svenska och tjeckiska finns inte som systemspråk
- * på PSP, så de väljs manuellt i inställningarna). */
-typedef enum {
-    LANG_AUTO, LANG_EN, LANG_SV, LANG_DE, LANG_FR, LANG_ES, LANG_IT, LANG_NL, LANG_PT, LANG_RU, LANG_JA, LANG_CS,
-    LANG_COUNT
-} LangId;
+/* Language IDs are discovered at runtime from JSON files. */
+typedef enum { LANG_AUTO = 0 } LangId;
 
 typedef enum {
     S_TAB_GAMES, S_LAUNCH, S_SETTINGS,
@@ -26,11 +22,11 @@ typedef enum {
     S_R_TAIWAN, S_R_RUSSIA, S_R_CHINA,
     S_RL_PSP, S_RL_APPS, S_LANG_AUTO,
     S_TAB_LIBRARY, S_LIB_ALL, S_SORT, S_SORT_NAME, S_SORT_RECENT, S_BOOT_ANIM, S_BATTERY_PCT, S_HEALTH,
-    S_TAB_MUSIC, S_NO_MUSIC, S_HINT_MUSIC, S_NOW_PLAYING, S_NOTHING_PLAYING,
+    S_TAB_MUSIC, S_TAB_EMULATORS, S_NO_MUSIC, S_HINT_MUSIC, S_NOW_PLAYING, S_NOTHING_PLAYING,
     S_UNKNOWN_ARTIST, S_LOADING_MUSIC, S_SAFE_START, S_NO_PAUSE, S_HIB_BLOCK,
     S_CAT_THEME, S_DESC_THEME, S_THEME_ART,
     S_HOME_ADD, S_HOME_REMOVE, S_HOME_PIN, S_HOME_UNPIN, S_HOME_ADDED, S_HOME_REMOVED, S_HOME_PINNED,
-    S_HOME_UNPINNED, S_HOME_PIN_LIMIT, S_HOME_REMOVE_ASK, S_OPTIONS,
+    S_HOME_UNPINNED, S_HOME_PIN_LIMIT, S_HOME_REMOVE_ASK, S_MOVE_TO, S_MOVED_TO_CATEGORY, S_MOVE_EMULATORS, S_OPTIONS,
     S_FILES, S_F_OPEN, S_F_MARK, S_F_COPY, S_F_MOVE, S_F_PASTE, S_F_RENAME, S_F_DELETE, S_F_NEWDIR, S_F_CANCEL,
     S_F_EMPTY, S_F_ITEMS, S_F_COPYING, S_F_MOVING, S_F_DELETING, S_F_DONE, S_F_FAILED, S_F_NO_SPACE,
     S_F_CANCELLED, S_F_FREE, S_F_MS, S_F_INTERNAL, S_F_BAD_NAME,
@@ -42,11 +38,12 @@ typedef enum {
     S_COUNT
 } StrId;
 
-/* Valt språk (LANG_AUTO … LANG_CS), sparas i psp5.cfg */
+/* Selected language index in the runtime-discovered language list. */
 extern unsigned char g_lang_setting;
 
 /* Bestämmer aktuellt språk från inställningen och systemspråket. */
 void lang_apply(void);
+int lang_count(void);
 /* Text på aktuellt språk */
 const char *L(StrId id);
 /* Språkets eget namn ("Svenska", "Deutsch", …), eller "Automatiskt" på aktuellt språk för LANG_AUTO */

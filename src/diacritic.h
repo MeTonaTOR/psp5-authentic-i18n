@@ -13,14 +13,14 @@
  * look as smooth as the glyphs of the font.
  */
 
-enum { DIAC_CARON = 1, DIAC_TICK, DIAC_RING };
+enum { DIAC_CARON = 1, DIAC_TICK, DIAC_RING, DIAC_ACUTE, DIAC_DOT, DIAC_OGONEK, DIAC_STROKE };
 
 #define DIAC_MAX_MARKS 48
 #define DIAC_MAX_VERTS 128
 
 typedef struct {
     short pos;  /* byte offset of the base letter in the plain string */
-    char kind;  /* DIAC_CARON, DIAC_TICK or DIAC_RING */
+    char kind;  /* DIAC_CARON, DIAC_TICK, DIAC_RING, DIAC_ACUTE, DIAC_DOT, DIAC_OGONEK or DIAC_STROKE */
     char upper; /* 1 for a capital letter */
     char base;  /* the plain letter, 'c' for the letter c with a hacek */
 } DiacMark;

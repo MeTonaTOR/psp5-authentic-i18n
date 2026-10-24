@@ -1,65 +1,33 @@
-# psp5-authentic
+# psp5-authentic-i18n
 
-A launcher for PSPs with **ARK-4 or ARK-5** that looks and feels like the user interface of a modern **home console** –
-on the PSP's 480×272 screen. You move through it with the D-pad alone.
+**A modern console-inspired launcher for the PSP.**
 
-psp5-authentic is a fork of [psp5](https://github.com/08Weber/psp5) by Mille Weber (08Weber), based on psp5 v1.5.3. It has
-one goal of its own: to be **as authentic as possible to its home console counterpart**. Where the console does something,
-this fork does it the same way. This is version 1.1.0 (1.0.0 was the first release); everything that changed compared with psp5 is in the
-[release notes](CHANGELOG.md). Many thanks to Mille Weber – all of this stands on that work.
+psp5-authentic-i18n is a launcher for PSP systems running ARK-4 or ARK-5, bringing a modern home-console-style interface to the PSP's native 480×272 screen. Navigate your games and content using nothing but the D-pad.
 
-<table>
-  <tr>
-    <td width="50%"><img src="docs/screenshots/games.png" alt="Games"><br><sub><b>Games</b> – the games you played last and the ones you pinned, with the Library as the last card</sub></td>
-    <td width="50%"><img src="docs/screenshots/options.png" alt="Options of a game"><br><sub><b>Options</b> (START) – saved data, information, pin to or remove from Home, delete</sub></td>
-  </tr>
-  <tr>
-    <td width="50%"><img src="docs/screenshots/library.png" alt="Library"><br><sub><b>Library</b> – everything on the card in one grid, sorted by name or by what you added last</sub></td>
-    <td width="50%"><img src="docs/screenshots/saved-data.png" alt="Manage Saved Data"><br><sub><b>Manage Saved Data</b> – look through saves, mark several and delete them, with the space you get back</sub></td>
-  </tr>
-  <tr>
-    <td width="50%"><img src="docs/screenshots/music.png" alt="Music"><br><sub><b>Music</b> – your MP3s with album art; the music keeps playing while you browse your games</sub></td>
-    <td width="50%"><img src="docs/screenshots/settings.png" alt="Settings"><br><sub><b>Settings</b> – psp5, themes, ARK options, plugins, power and USB</sub></td>
-  </tr>
-  <tr>
-    <td width="50%"><img src="docs/screenshots/theme.png" alt="Classic theme"><br><sub><b>Themes</b> – console colours and the classic looks of older consoles (here the XMB wave)</sub></td>
-    <td width="50%"><img src="docs/screenshots/startup.png" alt="Startup screen"><br><sub><b>Startup</b> – the circles and the golden dust take the colours of your theme (here Cosmic Red)</sub></td>
-  </tr>
-</table>
+This fork builds on the original [psp5](https://github.com/08Weber/psp5) and [psp5-authentic](https://github.com/xioonae/psp5-authentic) with a focus on authenticity, customization, and usability. 
+It introduces a dedicated `languages/` directory for translations, custom content tabs, and localized tab names to make browsing and organizing your PSP library easier.
 
-*The screenshots were taken in an emulator with invented demo games, music and saves.*
+The goal is to deliver a consistent, console-like experience that feels natural on PSP hardware, while continuing to improve the interface and expand customization options.
+
+For details on changes and improvements, see the release notes.
 
 ## What you get
-
-- **Games (Home).** Your last played games and apps plus the ones you pinned, in one row. The selected card is big, with its
-  artwork behind it. ↓ selects the **Start** and **⋯** (options) buttons. A UMD in the drive shows up first.
+- **Custom Tabs.** Browse your content through dedicated tabs, making different categories easier to access and organize. Tab names are localized for supported languages.
+- **Games (Home).** Your last played games and apps plus the ones you pinned, in one row. The selected card is big, with its artwork behind it. ↓ selects the **Start** and **⋯** (options) buttons. A UMD in the drive shows up first.
 - **Options** (START, or ✕ on ⋯). Manage Saved Data, Information, Delete, Remove from / Add to Home, Pin to / Unpin from Home.
-- **Library.** The last card of Games. It opens a grid with everything you have, games and apps together, and a **Sort**
-  button (by name or by what you added last). You can pin the Library card like any other card.
-- **Manage Saved Data.** Lists the saves of all your games. Mark some, delete them and see how much room you get back.
-  ARK's own save folder is locked and can't be deleted.
-- **Music.** Plays the MP3 files in `MUSIC` with title, artist and album art (from the file, or a `cover.jpg` / `folder.jpg`
-  in the folder). It keeps playing while you browse your games.
-- **Settings** (the cog wheel). *psp5* (boot into psp5, sounds, startup animation, battery percentage, language), *Theme*,
-  *Performance* (CPU speed, extra memory, caches), *System*, *Plugins* and *Power and USB* (USB mode, file manager, XMB,
-  sleep, shut down, restart, recovery menu).
-- **Themes.** The colours of the console covers, each with the console's scene behind your games (a beam of light, golden
-  dust, haze), plus the classic looks of PS1 to PS4. Highlight a theme to preview it, ✕ to use it. You can turn the game art
-  in the background off, so the theme is always visible.
-- **Startup.** A short intro like a console's, with a health notice, soft circles and golden dust in your theme's colours.
-  It plays when the PSP starts and wakes up, not when you come back from a game. Any button skips it, and you can turn it off.
+- **Library.** The last card of Games. It opens a grid with everything you have, games and apps together, and a **Sort** button (by name or by what you added last). You can pin the Library card like any other card.
+- **Manage Saved Data.** Lists the saves of all your games. Mark some, delete them and see how much room you get back. ARK's own save folder is locked and can't be deleted.
+- **Music.** Plays the MP3 files in `MUSIC` with title, artist and album art (from the file, or a `cover.jpg` / `folder.jpg` in the folder). It keeps playing while you browse your games.
+- **Settings** (the cog wheel). *psp5* (boot into psp5, sounds, startup animation, battery percentage, language), *Theme*, *Performance* (CPU speed, extra memory, caches), *System*, *Plugins* and *Power and USB* (USB mode, file manager, XMB, sleep, shut down, restart, recovery menu).
+- **Themes.** The colours of the console covers, each with the console's scene behind your games (a beam of light, golden dust, haze), plus the classic looks of PS1 to PS4. Highlight a theme to preview it, ✕ to use it. You can turn the game art in the background off, so the theme is always visible.
+- **Startup.** A short intro like a console's, with a health notice, soft circles and golden dust in your theme's colours. It plays when the PSP starts and wakes up, not when you come back from a game. Any button skips it, and you can turn it off.
 - **Power popup** (SELECT, on every tab). Sleep, Shut down, Restart, Recovery menu – ✕ does it at once.
-- **Volume and battery.** Pressing the volume buttons slides a volume bar in at the top. The battery icon fills up in a loop
-  while the PSP charges. You can also show the battery percentage (*Settings → psp5*).
-- **File manager** (*Settings → Power and USB*). Browse the Memory Stick (and the internal storage on a PSP Go) and copy,
-  move, rename, delete or make folders.
-- **Sounds and languages.** Menu sounds (you can turn them off). 11 languages: psp5 follows the PSP's language; Swedish and
-  Czech are picked under *Settings → psp5 → Language*.
-- **Quick and careful.** Only the cards near your selection are loaded, and artwork is cached, so it opens fast after the
-  first start. psp5 never touches flash0 and you can always get back to the XMB.
+- **Volume and battery.** Pressing the volume buttons slides a volume bar in at the top. The battery icon fills up in a loop while the PSP charges. You can also show the battery percentage (*Settings → psp5*).
+- **File manager** (*Settings → Power and USB*). Browse the Memory Stick (and the internal storage on a PSP Go) and copy, move, rename, delete or make folders.
+- **Sounds and languages.** Menu sounds (you can turn them off). 12 languages: psp5 follows the PSP's language; Swedish, Czech and Polish are picked under *Settings → psp5 → Language*.
+- **Quick and careful.** Only the cards near your selection are loaded, and artwork is cached, so it opens fast after the first start. psp5 never touches flash0 and you can always get back to the XMB.
 
-Games and apps use their own icon and background automatically. If you want your own covers, see *Covers* in
-[INSTALL.md](INSTALL.md).
+Games and apps use their own icon and background automatically. If you want your own covers, see *Covers* in [INSTALL.md](INSTALL.md).
 
 ## Buttons
 
@@ -93,20 +61,22 @@ If that fails too, psp5 sends the PSP to the XMB. More help is in [INSTALL.md](I
 Works on the **PSP-1000, 2000, 3000 and PSP Go** with **ARK-4 or ARK-5**; it adapts its settings to your model and ARK
 version (the PSP-1000 has no extra memory or USB charging, ARK-4 has fewer CPU speeds). The PS Vita isn't supported.
 
-Every update is tested on a **PSP-1000**, the only device used for testing. The other models and the two ARK versions are
-expected to work but aren't tested separately. Claude also runs automated checks on a PC; they are not part of this
-repository. If something behaves oddly on your PSP, please open an issue and tell us what you saw and which PSP and ARK you
-have.
+Every update is tested on a **PSP-3000** with **ARK-5** CFW, the only device used for testing. The other models and the two ARK versions are expected to work but aren't tested separately. Claude also runs automated checks on a PC; they are not part of this repository. If something behaves oddly on your PSP, please open an issue and tell us what you saw and which PSP and ARK you have.
 
 ## About this fork
 
-psp5-authentic is **Claude's work**: the code and the documentation are written by Claude, an AI assistant made by Anthropic.
-The person who runs the fork has almost no coding experience. They test every update on their own PSP and report back what
-they see, and the two of them work out the solutions together. So there will be bugs, and reports are what makes the project
-better.
+This fork of psp5-authentic focuses on customization, improved organization, and expanded language support.
 
-Everything you see is drawn by psp5 itself. No logos, icons, sounds or other assets from Sony are used – it's an own take on
-that style.
+Key changes include:
+
+- **Dedicated language directory** — translation files are organized in a separate languages/ directory, making them easier to maintain and extend.
+- **Custom tabs** — improved content organization with dedicated tabs for different categories of PSP content.
+- **Localized tab names** — tab labels, including Music and Emulators, support translations across all available languages.
+- **Ongoing improvements** — continued refinements to the interface, usability, and overall experience.
+
+The project is actively developed and tested on real PSP hardware. Bug reports, feedback, and suggestions are welcome.
+
+Everything displayed by psp5-authentic is drawn by the PSP itself. No Sony logos, icons, sounds, or other Sony assets are used — the interface is an original take on that visual style.
 
 ## Building it yourself
 
@@ -122,11 +92,16 @@ On Windows it is built inside WSL: `tools/setup-wsl.sh` installs the toolchain a
 `dist/PSP/GAME/PSP5/EBOOT.PBP` (`tools/build.sh ark4` for ARK-4). Both versions also run on the PSP Go. What each change
 touches in the code is written down in [docs/DEVELOPER-NOTES.md](docs/DEVELOPER-NOTES.md).
 
+
+## Custom translations
+
+Interface text is loaded from UTF-8 JSON files on the Memory Stick at `ms0:/PSP5/languages/`. The build script copies the bundled language files to `dist/PSP5/languages/`; copy that `PSP5` folder to the root of the Memory Stick. The selected language code is discovered from each JSON filename (`en.json`, `sv.json`, etc.); no C array of supported languages needs editing. Each file also declares its display name as `S_LANGNAME_<CODE>` (for example, `S_LANGNAME_PL` in `pl.json`). The settings menu discovers every `.json` file in that directory at runtime. `pl.json` is included as a starter Polish translation. Missing keys fall back to English, so custom files may translate only the strings they need. Keep the `S_*` keys unchanged and preserve format placeholders such as `%s` and `%d`.
+
 ## Thanks
 
 - **Mille Weber (08Weber)**, who made [psp5](https://github.com/08Weber/psp5), the project this fork is based on (v1.5.3).
-- The [ARK-5](https://github.com/PSP-Arkfive) and [ARK-4](https://github.com/PSP-Archive/ARK-4) teams – psp5 starts games and
-  stores settings the same way their arkMenu does, and uses ARK's libraries through psp-cfw-sdk.
+- **xioonae**, who made [psp5-authentic](https://github.com/xioonae/psp5-authentic), the project this fork is based on (v1.5.3).
+- The [ARK-5](https://github.com/PSP-Arkfive) and [ARK-4](https://github.com/PSP-Archive/ARK-4) teams – psp5 starts games and stores settings the same way their arkMenu does, and uses ARK's libraries through psp-cfw-sdk.
 - [pspdev](https://github.com/pspdev) for the toolchain, PSPSDK and packages.
 - intraFont, libpng, zlib, LZ4 and libcisoread.
 

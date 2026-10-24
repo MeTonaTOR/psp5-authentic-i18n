@@ -1,580 +1,302 @@
 /* psp5 – made by Mille Weber */
-/* Alla texter i gränssnittet. En rad per text, en kolumn per språk i ordningen
- * engelska, svenska, tyska, franska, spanska, italienska, nederländska,
- * portugisiska, ryska, japanska, tjeckiska. Saknas en översättning används engelska. */
+/* UI strings are loaded from ms0:/PSP5/languages/<code>.json.
+ * English is loaded first and is the fallback for missing translations. */
 #include <psputility.h>
+#include <pspiofilemgr.h>
 #include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
 #include "lang.h"
 
-#define NL (LANG_COUNT - 1) /* antal riktiga språk */
-
+#define TEXT_CAP 256
+#define JSON_CAP 65536
+#define MAX_LANGUAGES 32
+#define CODE_CAP 16
+#define NAME_CAP 48
 unsigned char g_lang_setting = LANG_AUTO;
-static int s_lang = LANG_EN;
+static int s_lang = 1;
+static int s_lang_count = 1;
+static char s_codes[MAX_LANGUAGES][CODE_CAP];
+static char s_names[MAX_LANGUAGES][NAME_CAP];
+static char s_text[S_COUNT][TEXT_CAP];
 
-static const char *const T[S_COUNT][NL] = {
-    [S_TAB_GAMES] = { "Games", "Spel", "Spiele", "Jeux", "Juegos", "Giochi", "Games", "Jogos", "Игры", "ゲーム", "Hry" },
-    [S_LAUNCH] = { "Start", "Starta", "Starten", "Lancer", "Iniciar", "Avvia", "Starten", "Iniciar", "Запуск", "スタート",
-                   "Spustit" },
-    [S_SETTINGS] = { "Settings", "Inställningar", "Einstellungen", "Paramètres", "Ajustes", "Impostazioni",
-                     "Instellingen", "Definições", "Настройки", "設定", "Nastavení" },
-    [S_NO_GAMES] = { "No games found", "Inga spel hittades", "Keine Spiele gefunden", "Aucun jeu trouvé",
-                     "No se encontraron juegos", "Nessun gioco trovato", "Geen games gevonden",
-                     "Nenhum jogo encontrado", "Игры не найдены", "ゲームが見つかりません", "Nenalezeny žádné hry" },
-    [S_HINT_GAMES] = { "Put ISO, CSO or ZSO files in ms0:/ISO", "Lägg ISO, CSO eller ZSO i ms0:/ISO",
-                       "Lege ISO-, CSO- oder ZSO-Dateien in ms0:/ISO", "Placez vos fichiers ISO, CSO ou ZSO dans ms0:/ISO",
-                       "Copia archivos ISO, CSO o ZSO en ms0:/ISO", "Copia file ISO, CSO o ZSO in ms0:/ISO",
-                       "Zet ISO-, CSO- of ZSO-bestanden in ms0:/ISO", "Coloque ficheiros ISO, CSO ou ZSO em ms0:/ISO",
-                       "Поместите файлы ISO, CSO или ZSO в ms0:/ISO", "ISO・CSO・ZSOを ms0:/ISO に入れてください",
-                       "Vložte soubory ISO, CSO nebo ZSO do ms0:/ISO" },
-    [S_HINT_APPS] = { "Put apps in ms0:/PSP/GAME", "Lägg appar i ms0:/PSP/GAME", "Lege Apps in ms0:/PSP/GAME",
-                      "Placez les applis dans ms0:/PSP/GAME", "Copia las apps en ms0:/PSP/GAME",
-                      "Copia le app in ms0:/PSP/GAME", "Zet apps in ms0:/PSP/GAME", "Coloque as apps em ms0:/PSP/GAME",
-                      "Поместите приложения в ms0:/PSP/GAME", "アプリを ms0:/PSP/GAME に入れてください",
-                      "Vložte aplikace do ms0:/PSP/GAME" },
-    [S_NO_ARK] = { "ARK not found. Games can only be started on a PSP",
-                   "ARK hittades inte. Spel kan bara startas på PSP:n",
-                   "ARK nicht gefunden. Spiele starten nur auf einer PSP",
-                   "ARK introuvable. Les jeux ne démarrent que sur une PSP",
-                   "No se encontró ARK. Los juegos solo se inician en una PSP",
-                   "ARK non trovato. I giochi si avviano solo su una PSP",
-                   "ARK niet gevonden. Games starten alleen op een PSP",
-                   "ARK não encontrado. Os jogos só iniciam numa PSP",
-                   "ARK не найден. Игры запускаются только на PSP",
-                   "ARKが見つかりません。ゲームはPSPでのみ起動できます", "ARK nenalezen. Hry lze spustit jen na PSP" },
-    [S_LOADING] = { "Loading games", "Läser in spel", "Spiele werden geladen", "Chargement des jeux",
-                    "Cargando juegos", "Caricamento giochi", "Games laden", "A carregar jogos", "Загрузка игр",
-                    "ゲームを読み込み中", "Načítání her" },
-    [S_SAVED] = { "Saved. Changes apply after a restart", "Sparat. Gäller efter omstart",
-                  "Gespeichert. Gilt nach einem Neustart", "Enregistré. Actif après redémarrage",
-                  "Guardado. Se aplica al reiniciar", "Salvato. Valido dopo il riavvio",
-                  "Opgeslagen. Geldt na een herstart", "Guardado. Aplica-se após reiniciar",
-                  "Сохранено. Нужен перезапуск", "保存しました。再起動後に反映されます",
-                  "Uloženo. Změny se projeví po restartu" },
-    [S_LAUNCH_FAILED] = { "Couldn't start the game", "Kunde inte starta spelet", "Spielstart fehlgeschlagen",
-                          "Impossible de lancer le jeu", "No se pudo iniciar el juego", "Impossibile avviare il gioco",
-                          "Kan de game niet starten", "Falha ao iniciar o jogo", "Не удалось запустить игру",
-                          "ゲームを起動できませんでした", "Hru se nepodařilo spustit" },
-    [S_USB_MODE] = { "USB mode", "USB-läge", "USB-Modus", "Mode USB", "Modo USB", "Modalità USB", "USB-modus",
-                     "Modo USB", "Режим USB", "USBモード", "Režim USB" },
-    [S_USB_CONNECTED] = { "Connected to computer", "Ansluten till datorn", "Mit dem Computer verbunden",
-                          "Connecté à l'ordinateur", "Conectado al ordenador", "Connesso al computer",
-                          "Verbonden met computer", "Ligado ao computador", "Подключено к компьютеру", "パソコンに接続中",
-                          "Připojeno k počítači" },
-    [S_USB_WAITING] = { "Waiting for USB cable", "Väntar på USB-kabel", "Warte auf USB-Kabel", "En attente du câble USB",
-                        "Esperando el cable USB", "In attesa del cavo USB", "Wachten op USB-kabel", "À espera do cabo USB",
-                        "Ожидание USB-кабеля", "USBケーブルを待っています", "Čekání na kabel USB" },
-    [S_USB_EJECT] = { "Eject the PSP on your computer before leaving", "Mata ut PSP:n i datorn innan du avslutar",
-                      "Wirf die PSP am Computer aus, bevor du beendest", "Éjectez la PSP de l'ordinateur avant de quitter",
-                      "Expulsa la PSP en el ordenador antes de salir", "Espelli la PSP dal computer prima di uscire",
-                      "Werp de PSP uit op je computer voordat je stopt", "Ejete a PSP no computador antes de sair",
-                      "Извлеките PSP на компьютере перед выходом", "終了する前にパソコンでPSPを取り出してください",
-                      "Před ukončením vysuňte PSP v počítači" },
-    [S_USB_EXIT] = { "Exit USB", "Avsluta USB", "USB beenden", "Quitter USB", "Salir de USB", "Esci da USB",
-                     "USB afsluiten", "Sair do USB", "Выйти из USB", "USBを終了", "Ukončit USB" },
-    [S_BACK] = { "Back", "Tillbaka", "Zurück", "Retour", "Atrás", "Indietro", "Terug", "Voltar", "Назад", "戻る", "Zpět" },
-    [S_YES] = { "Yes", "Ja", "Ja", "Oui", "Sí", "Sì", "Ja", "Sim", "Да", "はい", "Ano" },
-    [S_NO] = { "No", "Nej", "Nein", "Non", "No", "No", "Nee", "Não", "Нет", "いいえ", "Ne" },
-    [S_OFF] = { "Off", "Av", "Aus", "Désactivé", "Desactivado", "Disattivato", "Uit", "Desligado", "Выкл", "オフ",
-                "Vypnuto" },
-    [S_AUTO] = { "Auto", "Auto", "Auto", "Auto", "Auto", "Auto", "Auto", "Auto", "Авто", "自動", "Auto" },
-    [S_STANDARD] = { "Default", "Standard", "Standard", "Par défaut", "Predeterminado", "Predefinito", "Standaard",
-                     "Padrão", "По умолчанию", "標準", "Výchozí" },
-    [S_ALL] = { "All", "Alla", "Alle", "Tous", "Todos", "Tutti", "Alle", "Todos", "Все", "すべて", "Vše" },
-    [S_CAT_PERF] = { "Performance", "Prestanda", "Leistung", "Performances", "Rendimiento", "Prestazioni",
-                     "Prestaties", "Desempenho", "Скорость", "パフォーマンス", "Výkon" },
-    [S_CAT_SYSTEM] = { "System", "System", "System", "Système", "Sistema", "Sistema", "Systeem", "Sistema", "Система",
-                       "システム", "Systém" },
-    [S_CAT_PLUGINS] = { "Plugins", "Plugins", "Plugins", "Plugins", "Plugins", "Plugin", "Plug-ins", "Plugins",
-                        "Плагины", "プラグイン", "Pluginy" },
-    [S_CAT_POWER] = { "Power and USB", "Ström och USB", "Strom und USB", "Énergie et USB", "Energía y USB",
-                      "Energia e USB", "Stroom en USB", "Energia e USB", "Питание и USB", "電源とUSB", "Napájení a USB" },
-    [S_DESC_PSP5] = {
-        "ARK settings are saved in SETTINGS.TXT and apply after a restart. Hold SELECT while the PSP starts to skip them and go to the XMB.",
-        "ARK-inställningar sparas i SETTINGS.TXT och gäller efter omstart. Håll SELECT när PSP:n startar för att hoppa över dem och komma till XMB.",
-        "ARK-Einstellungen werden in SETTINGS.TXT gespeichert und gelten nach einem Neustart. Halte beim Start SELECT gedrückt, um sie zu überspringen.",
-        "Les réglages ARK sont enregistrés dans SETTINGS.TXT et s'appliquent après redémarrage. Maintenez SELECT au démarrage pour les ignorer.",
-        "Los ajustes de ARK se guardan en SETTINGS.TXT y se aplican al reiniciar. Mantén SELECT al encender la PSP para omitirlos.",
-        "Le impostazioni di ARK sono salvate in SETTINGS.TXT e valgono dopo il riavvio. Tieni premuto SELECT all'avvio per saltarle.",
-        "ARK-instellingen staan in SETTINGS.TXT en gelden na een herstart. Houd SELECT ingedrukt bij het opstarten om ze over te slaan.",
-        "As definições do ARK ficam em SETTINGS.TXT e aplicam-se após reiniciar. Mantenha SELECT ao ligar a PSP para as ignorar.",
-        "Настройки ARK хранятся в SETTINGS.TXT и действуют после перезапуска. Удерживайте SELECT при включении, чтобы пропустить их.",
-        "ARKの設定はSETTINGS.TXTに保存され、再起動後に反映されます。起動時にSELECTを押し続けるとスキップしてXMBに入ります。",
-        "Nastavení ARK se ukládají do SETTINGS.TXT a projeví se po restartu. Podržte při startu PSP tlačítko SELECT, abyste je přeskočili a přešli do XMB." },
-    [S_DESC_PERF] = {
-        "A higher clock speed makes games run smoother but uses more battery. Above 333 MHz is overclocking.",
-        "Högre klockfrekvens ger jämnare spel men drar mer batteri. Över 333 MHz är överklockning.",
-        "Ein höherer Takt lässt Spiele flüssiger laufen, braucht aber mehr Akku. Über 333 MHz ist Übertaktung.",
-        "Une fréquence plus élevée rend les jeux plus fluides mais use plus la batterie. Au-delà de 333 MHz, c'est de l'overclocking.",
-        "Una frecuencia más alta hace los juegos más fluidos, pero gasta más batería. Por encima de 333 MHz es overclock.",
-        "Una frequenza più alta rende i giochi più fluidi ma consuma più batteria. Oltre 333 MHz è overclock.",
-        "Een hogere kloksnelheid maakt games soepeler maar kost meer batterij. Boven 333 MHz is overklokken.",
-        "Uma frequência mais alta torna os jogos mais fluidos, mas gasta mais bateria. Acima de 333 MHz é overclock.",
-        "Высокая частота делает игры плавнее, но расходует больше заряда. Выше 333 МГц — разгон.",
-        "クロックを上げるとゲームが滑らかになりますが、バッテリーを多く使います。333 MHzを超えるとオーバークロックです。",
-        "Vyšší frekvence procesoru zajistí plynulejší hry, ale spotřebuje více baterie. Nad 333 MHz jde o přetaktování." },
-    [S_DESC_PLUGINS] = {
-        "Plugins are loaded by ARK on the next start. Hold START while the PSP starts to skip them all.",
-        "Plugins laddas av ARK vid nästa start. Håll START när PSP:n startar för att hoppa över alla.",
-        "Plugins werden von ARK beim nächsten Start geladen. Halte beim Start START gedrückt, um alle zu überspringen.",
-        "Les plugins sont chargés par ARK au prochain démarrage. Maintenez START au démarrage pour tous les ignorer.",
-        "ARK carga los plugins en el próximo inicio. Mantén START al encender la PSP para omitirlos todos.",
-        "I plugin vengono caricati da ARK al prossimo avvio. Tieni premuto START all'avvio per saltarli tutti.",
-        "Plug-ins worden bij de volgende start door ARK geladen. Houd START ingedrukt bij het opstarten om ze over te slaan.",
-        "Os plugins são carregados pelo ARK no próximo arranque. Mantenha START ao ligar a PSP para os ignorar.",
-        "Плагины загружаются ARK при следующем запуске. Удерживайте START при включении, чтобы пропустить их.",
-        "プラグインは次回起動時にARKが読み込みます。起動時にSTARTを押し続けるとすべてスキップします。",
-        "Pluginy načte ARK při dalším startu. Podržte při startu PSP tlačítko START, abyste přeskočili všechny." },
-    [S_BOOT_PSP5] = { "Boot into psp5", "Starta upp i psp5", "Direkt in psp5 starten", "Démarrer sur psp5",
-                      "Iniciar en psp5", "Avvia in psp5", "Opstarten in psp5", "Arrancar no psp5", "Загружаться в psp5",
-                      "psp5で起動", "Spouštět psp5 při startu" },
-    [S_SOUNDS] = { "Interface sounds", "Systemljud", "Menütöne", "Sons de l'interface", "Sonidos de la interfaz",
-                   "Suoni dell'interfaccia", "Interfacegeluiden", "Sons da interface", "Звуки интерфейса", "操作音",
-                   "Zvuky rozhraní" },
-    [S_LANGUAGE] = { "Language", "Språk", "Sprache", "Langue", "Idioma", "Lingua", "Taal", "Idioma", "Язык", "言語",
-                     "Jazyk" },
-    [S_IS_LAUNCHER] = { "psp5 is ARK's launcher", "psp5 är ARK:s launcher", "psp5 ist ARKs Launcher",
-                        "psp5 est le lanceur d'ARK", "psp5 es el launcher de ARK", "psp5 è il launcher di ARK",
-                        "psp5 is de ARK-launcher", "psp5 é o launcher do ARK", "psp5 — лаунчер ARK",
-                        "psp5はARKのランチャー", "psp5 je launcher ARK" },
-    [S_CLEAR_CACHE] = { "Clear image cache", "Rensa bildcache", "Bildcache leeren", "Vider le cache d'images",
-                        "Borrar caché de imágenes", "Svuota cache immagini", "Afbeeldingscache wissen",
-                        "Limpar cache de imagens", "Очистить кэш картинок", "画像キャッシュを消去", "Vymazat mezipaměť obrázků" },
-    [S_VERSION] = { "Version", "Version", "Version", "Version", "Versión", "Versione", "Versie", "Versão", "Версия",
-                    "バージョン", "Verze" },
-    [S_CPU_GAME] = { "CPU in games", "CPU i spel", "CPU in Spielen", "CPU en jeu", "CPU en juegos", "CPU nei giochi",
-                     "CPU in games", "CPU nos jogos", "ЦП в играх", "ゲーム中のCPU", "Procesor ve hrách" },
-    [S_CPU_XMB] = { "CPU in XMB and launcher", "CPU i XMB och launcher", "CPU im XMB und Launcher",
-                    "CPU XMB et lanceur", "CPU en XMB y launcher", "CPU in XMB e launcher",
-                    "CPU in XMB en launcher", "CPU no XMB e launcher", "ЦП в XMB и лаунчере", "XMBとランチャーのCPU",
-                    "Procesor v XMB a launcheru" },
-    [S_EXTRA_MEM] = { "Extra memory", "Extra minne", "Zusatzspeicher", "Mémoire supplémentaire", "Memoria extra",
-                      "Memoria extra", "Extra geheugen", "Memória extra", "Доп. память", "追加メモリ", "Extra paměť" },
-    [S_MS_CACHE] = { "Memory Stick cache", "Minneskortscache", "Memory-Stick-Cache", "Cache Memory Stick",
-                     "Caché de Memory Stick", "Cache Memory Stick", "Memory Stick-cache", "Cache do Memory Stick",
-                     "Кэш Memory Stick", "メモリースティックキャッシュ", "Mezipaměť Memory Stick" },
-    [S_ISO_CACHE] = { "ISO cache (Inferno)", "ISO-cache (Inferno)", "ISO-Cache (Inferno)", "Cache ISO (Inferno)",
-                      "Caché ISO (Inferno)", "Cache ISO (Inferno)", "ISO-cache (Inferno)", "Cache ISO (Inferno)",
-                      "Кэш ISO (Inferno)", "ISOキャッシュ (Inferno)", "Mezipaměť ISO (Inferno)" },
-    [S_USB_CHARGE] = { "USB charging", "USB-laddning", "USB-Laden", "Charge USB", "Carga por USB", "Ricarica USB",
-                       "Opladen via USB", "Carregamento USB", "Зарядка по USB", "USB充電", "Nabíjení přes USB" },
-    [S_WPA2] = { "WPA2 for Wi-Fi", "WPA2 för Wi-Fi", "WPA2 für WLAN", "WPA2 pour le Wi-Fi", "WPA2 para Wi-Fi",
-                 "WPA2 per Wi-Fi", "WPA2 voor wifi", "WPA2 para Wi-Fi", "WPA2 для Wi-Fi", "Wi-FiでWPA2",
-                 "WPA2 pro Wi-Fi" },
-    [S_SKIP_LOGOS] = { "Skip logos", "Hoppa över logotyper", "Logos überspringen", "Passer les logos",
-                       "Omitir logotipos", "Salta i loghi", "Logo's overslaan", "Saltar logótipos", "Пропуск логотипов",
-                       "ロゴをスキップ", "Přeskočit loga" },
-    [S_HIDE_PICS] = { "Hide game pictures in XMB", "Dölj spelbilder i XMB", "Spielbilder im XMB ausblenden",
-                      "Masquer les images du XMB", "Ocultar imágenes en el XMB", "Nascondi immagini nell'XMB",
-                      "XMB-afbeeldingen verbergen", "Ocultar imagens no XMB", "Скрыть картинки в XMB",
-                      "XMBのゲーム画像を隠す", "Skrýt obrázky her v XMB" },
-    [S_HIDE_MAC] = { "Hide MAC address", "Dölj MAC-adress", "MAC-Adresse verbergen", "Masquer l'adresse MAC",
-                     "Ocultar dirección MAC", "Nascondi indirizzo MAC", "MAC-adres verbergen", "Ocultar endereço MAC",
-                     "Скрыть MAC-адрес", "MACアドレスを隠す", "Skrýt adresu MAC" },
-    [S_HIDE_DLC] = { "Hide DLC", "Dölj DLC", "DLC ausblenden", "Masquer les DLC", "Ocultar DLC", "Nascondi DLC",
-                     "DLC verbergen", "Ocultar DLC", "Скрыть DLC", "DLCを隠す", "Skrýt DLC" },
-    [S_NO_LED] = { "Turn off LEDs", "Släck lamporna", "LEDs ausschalten", "Éteindre les LED", "Apagar los LED",
-                   "Spegni i LED", "LED's uitzetten", "Desligar os LED", "Выключить LED", "LEDを消灯",
-                   "Vypnout LED diody" },
-    [S_NO_UMD] = { "Disable UMD drive", "Stäng av UMD-enheten", "UMD-Laufwerk deaktivieren", "Désactiver le lecteur UMD",
-                   "Desactivar lector UMD", "Disattiva lettore UMD", "UMD-station uitschakelen", "Desativar leitor UMD",
-                   "Отключить привод UMD", "UMDドライブを無効化", "Vypnout mechaniku UMD" },
-    [S_NO_ANALOG] = { "Disable analog stick", "Stäng av analogspaken", "Analogstick deaktivieren",
-                      "Désactiver l'analogique", "Desactivar analógico", "Disattiva l'analogico",
-                      "Analoge stick uitschakelen", "Desativar analógico", "Отключить стик",
-                      "アナログスティックを無効化", "Vypnout analogovou páčku" },
-    [S_VITA_MUTE] = { "Mute with HOME + volume", "Ljud av med HOME + volym", "Stumm mit HOME + Lautstärke",
-                      "Muet avec HOME + volume", "Silenciar con HOME + volumen", "Muto con HOME + volume",
-                      "Dempen met HOME + volume", "Silenciar com HOME + volume", "Без звука: HOME + громкость",
-                      "HOME+音量でミュート", "Ztlumení: HOME + hlasitost" },
-    [S_QA_FLAGS] = { "QA flags", "QA-flaggor", "QA-Flags", "Drapeaux QA", "Indicadores QA", "Flag QA", "QA-vlaggen",
-                     "Flags QA", "Флаги QA", "QAフラグ", "Příznaky QA" },
-    [S_UMD_REGION] = { "UMD region", "UMD-region", "UMD-Region", "Région UMD", "Región UMD", "Regione UMD", "UMD-regio",
-                       "Região UMD", "Регион UMD", "UMDリージョン", "Region UMD" },
-    [S_XMB_REGION] = { "XMB region", "XMB-region", "XMB-Region", "Région XMB", "Región XMB", "Regione XMB", "XMB-regio",
-                       "Região XMB", "Регион XMB", "XMBリージョン", "Region XMB" },
-    [S_NO_PLUGINS] = { "No plugins installed", "Inga plugins installerade", "Keine Plugins installiert",
-                       "Aucun plugin installé", "No hay plugins instalados", "Nessun plugin installato",
-                       "Geen plug-ins geïnstalleerd", "Nenhum plugin instalado", "Плагины не установлены",
-                       "プラグインはありません", "Žádné pluginy" },
-    [S_TO_XMB] = { "Exit to XMB", "Gå till XMB", "Zum XMB", "Aller au XMB", "Ir al XMB", "Vai all'XMB", "Naar XMB",
-                   "Ir para o XMB", "Выйти в XMB", "XMBへ", "Návrat do XMB" },
-    [S_SLEEP] = { "Sleep", "Viloläge", "Standby", "Veille", "Suspender", "Sospensione", "Slaapstand", "Suspender",
-                  "Сон", "スリープ", "Režim spánku" },
-    [S_RESTART] = { "Restart", "Starta om", "Neu starten", "Redémarrer", "Reiniciar", "Riavvia", "Herstarten",
-                    "Reiniciar", "Перезапуск", "再起動", "Restartovat" },
-    [S_SHUTDOWN] = { "Shut down", "Stäng av", "Ausschalten", "Éteindre", "Apagar", "Spegni", "Uitschakelen",
-                     "Desligar", "Выключить", "電源を切る", "Vypnout" },
-    [S_RECOVERY] = { "Recovery menu", "Återställningsmeny", "Recovery-Menü", "Menu de récupération",
-                     "Menú de recuperación", "Menu di ripristino", "Herstelmenu", "Menu de recuperação",
-                     "Меню восстановления", "リカバリーメニュー", "Režim Recovery" },
-    [S_LOGOS_GAME] = { "On game start", "Vid spelstart", "Beim Spielstart", "Au lancement d'un jeu",
-                       "Al iniciar un juego", "All'avvio di un gioco", "Bij gamestart", "Ao iniciar jogos",
-                       "При запуске игры", "ゲーム起動時", "Při spuštění hry" },
-    [S_LOGOS_BOOT] = { "On boot", "Vid uppstart", "Beim Einschalten", "Au démarrage", "Al encender", "All'accensione",
-                       "Bij opstarten", "Ao ligar", "При включении", "起動時", "Při startu" },
-    [S_R_JAPAN] = { "Japan", "Japan", "Japan", "Japon", "Japón", "Giappone", "Japan", "Japão", "Япония", "日本",
-                    "Japonsko" },
-    [S_R_AMERICA] = { "America", "Amerika", "Amerika", "Amérique", "América", "America", "Amerika", "América", "Америка",
-                      "アメリカ", "Amerika" },
-    [S_R_EUROPE] = { "Europe", "Europa", "Europa", "Europe", "Europa", "Europa", "Europa", "Europa", "Европа", "ヨーロッパ",
-                     "Evropa" },
-    [S_R_KOREA] = { "Korea", "Korea", "Korea", "Corée", "Corea", "Corea", "Korea", "Coreia", "Корея", "韓国", "Korea" },
-    [S_R_UK] = { "United Kingdom", "Storbritannien", "Großbritannien", "Royaume-Uni", "Reino Unido", "Regno Unito",
-                 "Verenigd Koninkrijk", "Reino Unido", "Великобритания", "イギリス", "Spojené království" },
-    [S_R_LATAM] = { "Latin America", "Latinamerika", "Lateinamerika", "Amérique latine", "Latinoamérica",
-                    "America Latina", "Latijns-Amerika", "América Latina", "Латинская Америка", "中南米",
-                    "Latinská Amerika" },
-    [S_R_AUSTRALIA] = { "Australia", "Australien", "Australien", "Australie", "Australia", "Australia", "Australië",
-                        "Austrália", "Австралия", "オーストラリア", "Austrálie" },
-    [S_R_HONGKONG] = { "Hong Kong", "Hongkong", "Hongkong", "Hong Kong", "Hong Kong", "Hong Kong", "Hongkong",
-                       "Hong Kong", "Гонконг", "香港", "Hongkong" },
-    [S_R_TAIWAN] = { "Taiwan", "Taiwan", "Taiwan", "Taïwan", "Taiwán", "Taiwan", "Taiwan", "Taiwan", "Тайвань", "台湾",
-                     "Tchaj-wan" },
-    [S_R_RUSSIA] = { "Russia", "Ryssland", "Russland", "Russie", "Rusia", "Russia", "Rusland", "Rússia", "Россия",
-                     "ロシア", "Rusko" },
-    [S_R_CHINA] = { "China", "Kina", "China", "Chine", "China", "Cina", "China", "China", "Китай", "中国", "Čína" },
-    [S_RL_PSP] = { "PSP games", "PSP-spel", "PSP-Spiele", "Jeux PSP", "Juegos PSP", "Giochi PSP", "PSP-games",
-                   "Jogos PSP", "Игры PSP", "PSPゲーム", "Hry PSP" },
-    [S_RL_APPS] = { "Apps", "Appar", "Apps", "Applis", "Apps", "App", "Apps", "Apps", "Приложения", "アプリ", "Aplikace" },
-    [S_LANG_AUTO] = { "Automatic", "Automatiskt", "Automatisch", "Automatique", "Automático", "Automatica",
-                      "Automatisch", "Automático", "Автоматически", "自動", "Automaticky" },
-    [S_TAB_LIBRARY] = { "Library", "Bibliotek", "Bibliothek", "Bibliothèque", "Biblioteca", "Libreria",
-                        "Bibliotheek", "Biblioteca", "Библиотека", "ライブラリー", "Knihovna" },
-    [S_LIB_ALL] = { "All games and apps", "Alla spel och appar", "Alle Spiele und Apps", "Tous les jeux et applis",
-                    "Todos los juegos y apps", "Tutti i giochi e le app", "Alle games en apps",
-                    "Todos os jogos e apps", "Все игры и приложения", "すべてのゲームとアプリ", "Všechny hry a aplikace" },
-    [S_SORT] = { "Sort", "Sortera", "Sortieren", "Trier", "Ordenar", "Ordina", "Sorteren", "Ordenar",
-                 "Сортировка", "並べ替え", "Seřadit" },
-    [S_SORT_NAME] = { "Name (A-Z)", "Namn (A-Ö)", "Name (A-Z)", "Nom (A-Z)", "Nombre (A-Z)", "Nome (A-Z)",
-                      "Naam (A-Z)", "Nome (A-Z)", "Имя (А-Я)", "名前順", "Název (A-Z)" },
-    [S_SORT_RECENT] = { "Recently added", "Senast tillagda", "Zuletzt hinzugefügt", "Ajoutés récemment",
-                        "Añadidos recientemente", "Aggiunti di recente", "Onlangs toegevoegd",
-                        "Adicionados recentemente", "Недавно добавленные", "最近追加した順", "Naposledy přidané" },
-    [S_BOOT_ANIM] = { "Startup animation", "Startanimation", "Startanimation", "Animation de démarrage",
-                      "Animación de inicio", "Animazione di avvio", "Opstartanimatie", "Animação de arranque",
-                      "Заставка при запуске", "起動アニメーション", "Úvodní animace" },
-    [S_BATTERY_PCT] = { "Show battery percentage", "Visa batteriprocent", "Akkustand in Prozent anzeigen",
-                        "Afficher le pourcentage de batterie", "Mostrar porcentaje de batería",
-                        "Mostra percentuale batteria", "Batterijpercentage tonen", "Mostrar percentagem da bateria",
-                        "Показывать заряд в процентах", "バッテリー残量をパーセント表示", "Zobrazit procenta baterie" },
-    /* hälsovarningen på startskärmen – rader skiljs med \n */
-    [S_HEALTH] = { "PHOTOSENSITIVITY WARNING: SOME PEOPLE MAY HAVE SEIZURES WHEN EXPOSED TO FLASHING LIGHTS\n"
-                   "OR PATTERNS, EVEN WITHOUT ANY HISTORY OF EPILEPSY. IF YOU FEEL UNWELL WHILE PLAYING,\n"
-                   "STOP IMMEDIATELY AND CONSULT A DOCTOR. TAKE REGULAR BREAKS.",
-                   "VARNING FÖR LJUSKÄNSLIGHET: VISSA PERSONER KAN FÅ ANFALL AV BLINKANDE LJUS ELLER MÖNSTER,\n"
-                   "ÄVEN UTAN TIDIGARE EPILEPSI. OM DU MÅR DÅLIGT NÄR DU SPELAR, SLUTA GENAST OCH\n"
-                   "KONTAKTA EN LÄKARE. TA REGELBUNDNA PAUSER.", NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-                   "UPOZORNĚNÍ NA FOTOSENZITIVITU: U NĚKTERÝCH OSOB MOHOU BLIKAJÍCÍ SVĚTLA NEBO VZORY\n"
-                   "VYVOLAT ZÁCHVATY, I KDYŽ NIKDY NETRPĚLY EPILEPSIÍ. POKUD SE PŘI HRANÍ NEPOHODLNĚ\n"
-                   "CÍTÍTE, OKAMŽITĚ PŘESTAŇTE A VYHLEDEJTE LÉKAŘE. DĚLEJTE PRAVIDELNÉ PŘESTÁVKY." },
-    [S_TAB_MUSIC] = { "Music", "Musik", "Musik", "Musique", "Música", "Musica", "Muziek", "Música", "Музыка",
-                      "ミュージック", "Hudba" },
-    [S_NO_MUSIC] = { "No music found", "Ingen musik hittades", "Keine Musik gefunden", "Aucune musique trouvée",
-                     "No se encontró música", "Nessuna musica trovata", "Geen muziek gevonden",
-                     "Nenhuma música encontrada", "Музыка не найдена", "ミュージックが見つかりません", "Nenalezena žádná hudba" },
-    [S_HINT_MUSIC] = { "Put MP3 files in ms0:/MUSIC", "Lägg MP3-filer i ms0:/MUSIC", "Lege MP3-Dateien in ms0:/MUSIC",
-                       "Placez vos fichiers MP3 dans ms0:/MUSIC", "Copia archivos MP3 en ms0:/MUSIC",
-                       "Copia file MP3 in ms0:/MUSIC", "Zet MP3-bestanden in ms0:/MUSIC",
-                       "Coloque ficheiros MP3 em ms0:/MUSIC", "Поместите файлы MP3 в ms0:/MUSIC",
-                       "MP3を ms0:/MUSIC に入れてください", "Vložte soubory MP3 do ms0:/MUSIC" },
-    [S_NOW_PLAYING] = { "Now playing", "Spelas nu", "Wird gespielt", "En cours", "Reproduciendo", "In riproduzione",
-                        "Speelt nu", "A tocar", "Сейчас играет", "再生中", "Právě hraje" },
-    [S_NOTHING_PLAYING] = { "Nothing playing", "Inget spelas", "Keine Wiedergabe", "Aucune lecture",
-                            "Nada en reproducción", "Nessuna riproduzione", "Er speelt niets", "Nada a tocar",
-                            "Ничего не играет", "再生していません", "Nic nehraje" },
-    [S_LOADING_MUSIC] = { "Loading music", "Läser in musik", "Musik wird geladen", "Chargement de la musique",
-                          "Cargando música", "Caricamento musica", "Muziek laden", "A carregar música",
-                          "Загрузка музыки", "ミュージックを読み込み中", "Načítání hudby" },
-    [S_UNKNOWN_ARTIST] = { "Unknown artist", "Okänd artist", "Unbekannter Künstler", "Artiste inconnu",
-                           "Artista desconocido", "Artista sconosciuto", "Onbekende artiest",
-                           "Artista desconhecido", "Неизвестный артист", "不明なアーティスト", "Neznámý interpret" },
-    [S_SAFE_START] = { "Safe start: the last start didn't finish", "Felsäker start: förra starten blev inte klar",
-                       "Sicherer Start: letzter Start nicht beendet", "Démarrage sûr : le dernier n'a pas abouti",
-                       "Inicio seguro: el último inicio no terminó", "Avvio sicuro: l'ultimo avvio non è finito",
-                       "Veilige start: vorige start niet voltooid", "Arranque seguro: o último não terminou",
-                       "Безопасный запуск: прошлый не завершился", "セーフモード：前回の起動が完了しませんでした",
-                       "Bezpečný start: poslední start nebyl dokončen" },
-    [S_NO_PAUSE] = { "Disable Pause Game", "Stäng av Pausa Spel", "Spiel Pausieren Deaktivieren",
-                     "Désactiver la Pause du Jeu", "Desactivar Pausar Juego", "Disattiva Pausa Gioco",
-                     "Spel Pauzeren Uitschakelen", "Desativar Pausar Jogo", "Отключить Паузу Игры",
-                     "ゲームの一時停止を無効化", "Vypnout Pozastavení Hry" },
-    [S_HIB_BLOCK] = { "Keep the paused game", "Behåll det pausade spelet", "Pausiertes Spiel behalten",
-                      "Garder le jeu en pause", "Conservar el juego pausado", "Mantieni il gioco in pausa",
-                      "Gepauzeerd spel bewaren", "Manter o jogo pausado", "Сохранять игру на паузе",
-                      "一時停止中のゲームを保持", "Ponechat pozastavenou hru" },
-    [S_CAT_THEME] = { "Theme", "Tema", "Design", "Thème", "Tema", "Tema", "Thema", "Tema", "Тема", "テーマ", "Motiv" },
-    [S_DESC_THEME] = { "Choose the colours of psp5: the PS5 console covers, or the classic look of PS1 to PS4.",
-                       "Välj psp5:s färger: PS5:s konsolskal, eller det klassiska utseendet från PS1 till PS4.",
-                       "Wähle die Farben von psp5: die PS5-Konsolencover oder den klassischen Look von PS1 bis PS4.",
-                       "Choisis les couleurs de psp5 : les façades de la PS5, ou le style classique de la PS1 à la PS4.",
-                       "Elige los colores de psp5: las cubiertas de la PS5 o el aspecto clásico de PS1 a PS4.",
-                       "Scegli i colori di psp5: le cover della PS5 o lo stile classico da PS1 a PS4.",
-                       "Kies de kleuren van psp5: de PS5-consolecovers of de klassieke look van PS1 tot PS4.",
-                       "Escolhe as cores do psp5: as tampas da PS5 ou o visual clássico da PS1 à PS4.",
-                       "Выберите цвета psp5: панели PS5 или классический вид PS1–PS4.",
-                       "psp5の色を選べます：PS5のカバーの色、またはPS1〜PS4のクラシックな見た目。",
-                       "Vyberte motiv psp5: můžete vybírat mezi styly PS5 nebo klasickými vzhledy PS1 až PS4." },
-    [S_THEME_ART] = { "Game art in the background", "Spelbilder i bakgrunden", "Spielbilder im Hintergrund",
-                      "Images des jeux en fond", "Imágenes de juegos de fondo", "Immagini dei giochi di sfondo",
-                      "Gamebeelden op de achtergrond", "Imagens dos jogos no fundo", "Обложки игр на фоне",
-                      "ゲーム画像を背景に表示", "Obrázky her na pozadí" },
-    [S_HOME_ADD] = { "Add to Home", "Lägg till i Hem", "Zu Home Hinzufügen", "Ajouter à l'Accueil", "Añadir a Inicio",
-                     "Aggiungi a Home", "Toevoegen aan Home", "Adicionar ao Início", "Добавить на Главную", "ホームに追加",
-                     "Přidat na Plochu" },
-    [S_HOME_REMOVE] = { "Remove from Home", "Ta bort från Hem", "Von Home Entfernen", "Retirer de l'Accueil",
-                        "Quitar de Inicio", "Rimuovi da Home", "Verwijderen van Home", "Remover do Início",
-                        "Убрать с Главной", "ホームから外す", "Odebrat z Plochy" },
-    [S_HOME_PIN] = { "Pin to Home", "Fäst på Hem", "An Home Anheften", "Épingler à l'Accueil", "Anclar a Inicio",
-                     "Fissa su Home", "Vastmaken aan Home", "Fixar no Início", "Закрепить на Главной", "ホームにピン留め",
-                     "Připnout na Plochu" },
-    [S_HOME_UNPIN] = { "Unpin from Home", "Lossa från Hem", "Von Home Lösen", "Détacher de l'Accueil",
-                       "Desanclar de Inicio", "Sgancia da Home", "Losmaken van Home", "Desafixar do Início",
-                       "Открепить от Главной", "ホームのピン留めを解除", "Odepnout z Plochy" },
-    [S_HOME_ADDED] = { "Added to Home", "Tillagd i Hem", "Zu Home hinzugefügt", "Ajouté à l'Accueil",
-                       "Añadido a Inicio", "Aggiunto a Home", "Toegevoegd aan Home", "Adicionado ao Início",
-                       "Добавлено на Главную", "ホームに追加しました", "Přidáno na Plochu" },
-    [S_HOME_REMOVED] = { "Removed from Home", "Borttagen från Hem", "Von Home entfernt", "Retiré de l'Accueil",
-                         "Quitado de Inicio", "Rimosso da Home", "Verwijderd van Home", "Removido do Início",
-                         "Убрано с Главной", "ホームから外しました", "Odebráno z Plochy" },
-    [S_HOME_PINNED] = { "Pinned to Home", "Fäst på Hem", "An Home angeheftet", "Épinglé à l'Accueil",
-                        "Anclado a Inicio", "Fissato su Home", "Vastgemaakt aan Home", "Fixado no Início",
-                        "Закреплено на Главной", "ホームにピン留めしました", "Připnuto na Plochu" },
-    [S_HOME_UNPINNED] = { "Unpinned from Home", "Lossad från Hem", "Von Home gelöst", "Détaché de l'Accueil",
-                          "Desanclado de Inicio", "Sganciato da Home", "Losgemaakt van Home", "Desafixado do Início",
-                          "Откреплено от Главной", "ホームのピン留めを解除しました", "Odepnuto z Plochy" },
-    [S_HOME_PIN_LIMIT] = { "Up to %d can be pinned", "Högst %d kan fästas", "Höchstens %d anheftbar",
-                           "%d épinglés au maximum", "Máximo %d anclados", "Massimo %d fissati",
-                           "Maximaal %d vastgemaakt", "Máximo de %d fixados", "Закрепить можно не более %d",
-                           "ピン留めは最大%d件です", "Lze připnout nejvýše %d" },
-    [S_HOME_REMOVE_ASK] = { "%s is pinned. Removing it from Home also unpins it.",
-                            "%s är fäst. Det lossas när det tas bort från Hem.",
-                            "%s ist angeheftet. Beim Entfernen von Home wird es auch gelöst.",
-                            "%s est épinglé. Le retirer de l'Accueil le détache aussi.",
-                            "%s está anclado. Al quitarlo de Inicio también se desancla.",
-                            "%s è fissato. Rimuovendolo da Home viene anche sganciato.",
-                            "%s is vastgemaakt. Verwijderen van Home maakt het ook los.",
-                            "%s está fixado. Ao remover do Início, também é desafixado.",
-                            "Закреплено на Главной: %s. Убрать и открепить?", "%s はピン留めされています。ホームから外すとピン留めも解除されます。",
-                            "Připnuto: %s. Odebráním z Plochy se také odepne." },
-    [S_OPTIONS] = { "Options", "Alternativ", "Optionen", "Options", "Opciones", "Opzioni", "Opties", "Opções",
-                    "Параметры", "オプション", "Možnosti" },
-    [S_FILES] = { "File manager", "Filhanterare", "Dateimanager", "Gestionnaire de fichiers", "Gestor de archivos",
-                  "Gestione file", "Bestandsbeheer", "Gestor de ficheiros", "Файловый менеджер", "ファイルマネージャー",
-                  "Správce souborů" },
-    [S_F_OPEN] = { "Open", "Öppna", "Öffnen", "Ouvrir", "Abrir", "Apri", "Openen", "Abrir", "Открыть", "開く", "Otevřít" },
-    [S_F_MARK] = { "Mark", "Markera", "Markieren", "Sélect.", "Marcar", "Seleziona", "Markeren", "Marcar", "Отметить",
-                   "選択", "Označit" },
-    [S_F_COPY] = { "Copy", "Kopiera", "Kopieren", "Copier", "Copiar", "Copia", "Kopiëren", "Copiar", "Копировать",
-                   "コピー", "Kopírovat" },
-    [S_F_MOVE] = { "Move", "Flytta", "Verschieben", "Déplacer", "Mover", "Sposta", "Verplaatsen", "Mover",
-                   "Переместить", "移動", "Přesunout" },
-    [S_F_PASTE] = { "Paste here", "Klistra in här", "Hier einfügen", "Coller ici", "Pegar aquí", "Incolla qui",
-                    "Hier plakken", "Colar aqui", "Вставить сюда", "ここに貼り付け", "Vložit sem" },
-    [S_F_RENAME] = { "Rename", "Byt namn", "Umbenennen", "Renommer", "Cambiar nombre", "Rinomina", "Naam wijzigen",
-                     "Mudar o nome", "Переименовать", "名前を変更", "Přejmenovat" },
-    [S_F_DELETE] = { "Delete", "Radera", "Löschen", "Supprimer", "Eliminar", "Elimina", "Verwijderen", "Eliminar",
-                     "Удалить", "削除", "Smazat" },
-    [S_F_NEWDIR] = { "New folder", "Ny mapp", "Neuer Ordner", "Nouveau dossier", "Nueva carpeta", "Nuova cartella",
-                     "Nieuwe map", "Nova pasta", "Новая папка", "新しいフォルダー", "Nová složka" },
-    [S_F_CANCEL] = { "Cancel", "Avbryt", "Abbrechen", "Annuler", "Cancelar", "Annulla", "Annuleren", "Cancelar",
-                     "Отмена", "キャンセル", "Zrušit" },
-    [S_F_EMPTY] = { "This folder is empty", "Mappen är tom", "Dieser Ordner ist leer", "Ce dossier est vide",
-                    "Esta carpeta está vacía", "Questa cartella è vuota", "Deze map is leeg", "Esta pasta está vazia",
-                    "Папка пуста", "このフォルダーは空です", "Tato složka je prázdná" },
-    [S_F_ITEMS] = { "%d items", "%d objekt", "%d Elemente", "%d éléments", "%d elementos", "%d elementi", "%d items",
-                    "%d itens", "Объектов: %d", "%d 項目", "Položek: %d" },
-    [S_F_COPYING] = { "Copying", "Kopierar", "Kopieren", "Copie", "Copiando", "Copia in corso", "Kopiëren",
-                      "A copiar", "Копирование", "コピー中", "Kopírování" },
-    [S_F_MOVING] = { "Moving", "Flyttar", "Verschieben", "Déplacement", "Moviendo", "Spostamento", "Verplaatsen",
-                     "A mover", "Перемещение", "移動中", "Přesouvání" },
-    [S_F_DELETING] = { "Deleting", "Raderar", "Löschen", "Suppression", "Eliminando", "Eliminazione", "Verwijderen",
-                       "A eliminar", "Удаление", "削除中", "Mazání" },
-    [S_F_DONE] = { "Done", "Klart", "Fertig", "Terminé", "Listo", "Fatto", "Klaar", "Concluído", "Готово", "完了",
-                   "Hotovo" },
-    [S_F_FAILED] = { "Something went wrong", "Något gick fel", "Etwas ist schiefgegangen", "Une erreur s'est produite",
-                     "Algo salió mal", "Qualcosa è andato storto", "Er ging iets mis", "Algo correu mal",
-                     "Что-то пошло не так", "エラーが発生しました", "Něco se pokazilo" },
-    [S_F_NO_SPACE] = { "Not enough free space", "För lite ledigt utrymme", "Zu wenig freier Speicher",
-                       "Espace libre insuffisant", "Espacio libre insuficiente", "Spazio libero insufficiente",
-                       "Niet genoeg vrije ruimte", "Espaço livre insuficiente", "Недостаточно места",
-                       "空き容量が足りません", "Nedostatek volného místa" },
-    [S_F_CANCELLED] = { "Cancelled", "Avbrutet", "Abgebrochen", "Annulé", "Cancelado", "Annullato", "Geannuleerd",
-                        "Cancelado", "Отменено", "キャンセルしました", "Zrušeno" },
-    [S_F_FREE] = { "%s free", "%s ledigt", "%s frei", "%s libres", "%s libres", "%s liberi", "%s vrij", "%s livres",
-                   "Свободно: %s", "空き %s", "Volno: %s" },
-    [S_F_MS] = { "Memory Stick", "Memory Stick", "Memory Stick", "Memory Stick", "Memory Stick", "Memory Stick",
-                 "Memory Stick", "Memory Stick", "Memory Stick", "メモリースティック", "Memory Stick" },
-    [S_F_INTERNAL] = { "System Storage", "Internminne", "Systemspeicher", "Stockage Système",
-                       "Memoria del Sistema", "Memoria di Sistema", "Systeemopslag", "Memória do Sistema",
-                       "Системная Память", "本体ストレージ", "Systémové Úložiště" },
-    [S_F_BAD_NAME] = { "That name can't be used", "Namnet kan inte användas", "Dieser Name ist nicht erlaubt",
-                       "Ce nom n'est pas autorisé", "Ese nombre no se puede usar", "Questo nome non è consentito",
-                       "Die naam is niet toegestaan", "Esse nome não pode ser usado", "Недопустимое имя",
-                       "その名前は使用できません", "Tento název nelze použít" },
-    [S_INFO] = { "Information", "Information", "Informationen", "Informations", "Información", "Informazioni",
-                 "Informatie", "Informações", "Информация", "情報", "Informace" },
-    [S_I_TYPE] = { "Type", "Typ", "Typ", "Type", "Tipo", "Tipo", "Type", "Tipo", "Тип", "種類", "Typ" },
-    [S_I_LOCATION] = { "Location", "Plats", "Speicherort", "Emplacement", "Ubicación", "Posizione", "Locatie",
-                       "Localização", "Расположение", "場所", "Umístění" },
-    [S_I_FOLDER] = { "Folder", "Mapp", "Ordner", "Dossier", "Carpeta", "Cartella", "Map", "Pasta", "Папка", "フォルダー",
-                     "Složka" },
-    [S_I_FILE] = { "File", "Fil", "Datei", "Fichier", "Archivo", "File", "Bestand", "Ficheiro", "Файл", "ファイル",
-                   "Soubor" },
-    [S_I_SIZE] = { "Size", "Storlek", "Größe", "Taille", "Tamaño", "Dimensione", "Grootte", "Tamanho", "Размер",
-                   "サイズ", "Velikost" },
-    [S_I_CONTENTS] = { "Folder contents", "Mappens innehåll", "Ordnerinhalt", "Contenu du dossier",
-                       "Contenido de la carpeta", "Contenuto della cartella", "Inhoud van de map",
-                       "Conteúdo da pasta", "Содержимое папки", "フォルダーの内容", "Obsah složky" },
-    [S_I_SIZE_FILES] = { "%s, %d files", "%s, %d filer", "%s, %d Dateien", "%s, %d fichiers", "%s, %d archivos",
-                         "%s, %d file", "%s, %d bestanden", "%s, %d ficheiros", "%s, файлов: %d", "%s、%d 個のファイル",
-                         "%s, souborů: %d" },
-    [S_I_MODIFIED] = { "Modified", "Ändrad", "Geändert", "Modifié", "Modificado", "Modificato", "Gewijzigd",
-                       "Modificado", "Изменён", "更新日時", "Změněno" },
-    [S_I_UNCOMPRESSED] = { "Uncompressed size", "Okomprimerad storlek", "Unkomprimierte Größe",
-                           "Taille non compressée", "Tamaño sin comprimir", "Dimensione non compressa",
-                           "Ongecomprimeerde grootte", "Tamanho descomprimido", "Размер без сжатия", "圧縮前のサイズ",
-                           "Velikost bez komprese" },
-    [S_I_COMPRESSION] = { "Compression", "Komprimering", "Kompression", "Compression", "Compresión", "Compressione",
-                          "Compressie", "Compressão", "Сжатие", "圧縮率", "Komprese" },
-    [S_I_VOLUME] = { "Volume name", "Volymnamn", "Datenträgername", "Nom du volume", "Nombre del volumen",
-                     "Nome del volume", "Volumenaam", "Nome do volume", "Имя тома", "ボリューム名", "Název svazku" },
-    [S_I_IMAGE] = { "%s image", "%s-avbild", "%s-Abbild", "Image %s", "Imagen %s", "Immagine %s", "%s-image",
-                    "Imagem %s", "Образ %s", "%s イメージ", "Obraz %s" },
-    [S_I_HOMEBREW] = { "Homebrew app", "Homebrew-app", "Homebrew-App", "Application homebrew", "Aplicación homebrew",
-                       "App homebrew", "Homebrew-app", "Aplicação homebrew", "Homebrew-приложение", "自作アプリ",
-                       "Aplikace homebrew" },
-    [S_I_PSN] = { "PSN game", "PSN-spel", "PSN-Spiel", "Jeu PSN", "Juego de PSN", "Gioco PSN", "PSN-game",
-                  "Jogo PSN", "Игра PSN", "PSNゲーム", "Hra z PSN" },
-    [S_I_POPS] = { "PS1 game", "PS1-spel", "PS1-Spiel", "Jeu PS1", "Juego de PS1", "Gioco PS1", "PS1-game",
-                   "Jogo de PS1", "Игра PS1", "PS1ゲーム", "Hra pro PS1" },
-    [S_I_UMD] = { "UMD disc", "UMD-skiva", "UMD-Disc", "Disque UMD", "Disco UMD", "Disco UMD", "UMD-schijf",
-                  "Disco UMD", "Диск UMD", "UMDディスク", "Disk UMD" },
-    [S_I_UMD_DRIVE] = { "UMD drive", "UMD-enhet", "UMD-Laufwerk", "Lecteur UMD", "Unidad UMD", "Unità UMD",
-                        "UMD-station", "Unidade UMD", "Привод UMD", "UMDドライブ", "Mechanika UMD" },
-    [S_DEL_FILE] = { "The file %s will be deleted.", "Filen %s raderas.", "Die Datei %s wird gelöscht.",
-                     "Le fichier %s sera supprimé.", "Se eliminará el archivo %s.", "Il file %s verrà eliminato.",
-                     "Het bestand %s wordt verwijderd.", "O ficheiro %s será eliminado.", "Файл %s будет удалён.",
-                     "ファイル %s を削除します。", "Soubor %s bude smazán." },
-    [S_DEL_DIR] = { "The folder %s and everything in it will be deleted.", "Mappen %s och allt i den raderas.",
-                    "Der Ordner %s und sein gesamter Inhalt werden gelöscht.",
-                    "Le dossier %s et tout son contenu seront supprimés.",
-                    "Se eliminará la carpeta %s y todo su contenido.",
-                    "La cartella %s e tutto il suo contenuto verranno eliminati.",
-                    "De map %s en alles erin wordt verwijderd.",
-                    "A pasta %s e todo o seu conteúdo serão eliminados.",
-                    "Папка %s и всё её содержимое будут удалены.", "フォルダー %s とその中身をすべて削除します。",
-                    "Složka %s a vše v ní bude smazáno." },
-    [S_DEL_FOREVER] = { "This cannot be undone.", "Det går inte att ångra.",
-                        "Das lässt sich nicht rückgängig machen.", "Cette action est irréversible.",
-                        "Esta acción no se puede deshacer.", "Questa azione non può essere annullata.",
-                        "Dit kan niet ongedaan worden gemaakt.", "Esta ação não pode ser anulada.",
-                        "Это действие нельзя отменить.", "この操作は元に戻せません。", "Tuto akci nelze vrátit zpět." },
-    [S_DELETED] = { "Deleted", "Raderad", "Gelöscht", "Supprimé", "Eliminado", "Eliminato", "Verwijderd",
-                    "Eliminado", "Удалено", "削除しました", "Smazáno" },
-    [S_SAVES] = { "Manage Saved Data", "Hantera Sparad Data", "Gespeicherte Daten Verwalten",
-                  "Gérer les Sauvegardes", "Gestionar Datos Guardados", "Gestione Dati Salvati",
-                  "Opgeslagen Data Beheren", "Gerir Dados Guardados", "Управление Сохранениями",
-                  "セーブデータ管理", "Správa Uložených Dat" },
-    [S_SV_SELECT_ALL] = { "Select all", "Markera alla", "Alle auswählen", "Tout sélectionner", "Seleccionar todo",
-                          "Seleziona tutto", "Alles selecteren", "Selecionar tudo", "Выбрать все", "すべて選択",
-                          "Vybrat vše" },
-    [S_SV_DESELECT_ALL] = { "Deselect all", "Avmarkera alla", "Auswahl aufheben", "Tout désélectionner",
-                            "Deseleccionar todo", "Deseleziona tutto", "Selectie opheffen", "Desselecionar tudo",
-                            "Снять выделение", "選択を解除", "Zrušit výběr" },
-    [S_SV_NONE] = { "No saved data found", "Ingen sparad data hittades", "Keine gespeicherten Daten gefunden",
-                    "Aucune sauvegarde trouvée", "No se encontraron datos guardados",
-                    "Nessun dato salvato trovato", "Geen opgeslagen data gevonden",
-                    "Nenhum dado guardado encontrado", "Сохранения не найдены", "セーブデータが見つかりません",
-                    "Nenalezena žádná uložená data" },
-    [S_SV_NOT_INST] = { "%s (not installed)", "%s (inte installerad)", "%s (nicht installiert)",
-                        "%s (non installé)", "%s (no instalado)", "%s (non installato)", "%s (niet geïnstalleerd)",
-                        "%s (não instalado)", "%s (не установлена)", "%s（未インストール）",
-                        "%s (není nainstalováno)" },
-    [S_SV_FREE_AFTER] = { "Free after deleting: %s", "Ledigt efter radering: %s", "Frei nach dem Löschen: %s",
-                          "Libre après suppression : %s", "Libre tras eliminar: %s",
-                          "Libero dopo l'eliminazione: %s", "Vrij na verwijderen: %s", "Livre após eliminar: %s",
-                          "Свободно после удаления: %s", "削除後の空き: %s", "Volno po smazání: %s" },
-    [S_SV_SELECTED] = { "Selected: %d (%s)", "Markerade: %d (%s)", "Ausgewählt: %d (%s)", "Sélectionné : %d (%s)",
-                        "Seleccionados: %d (%s)", "Selezionati: %d (%s)", "Geselecteerd: %d (%s)",
-                        "Selecionados: %d (%s)", "Выбрано: %d (%s)", "選択中: %d（%s）", "Vybráno: %d (%s)" },
-    [S_SV_PROTECTED] = { "System data can't be deleted", "Systemdata kan inte raderas",
-                         "Systemdaten können nicht gelöscht werden",
-                         "Données système non supprimables",
-                         "Los datos del sistema no se pueden eliminar",
-                         "Dati di sistema non eliminabili",
-                         "Systeemgegevens niet verwijderbaar",
-                         "Os dados do sistema não podem ser eliminados", "Системные данные нельзя удалить",
-                         "システムデータは削除できません", "Systémová data nelze smazat" },
-    [S_SV_DEL_ASK] = { "Delete the selected saved data?", "Radera den markerade sparade datan?",
-                       "Die ausgewählten gespeicherten Daten löschen?",
-                       "Supprimer les sauvegardes sélectionnées ?",
-                       "¿Eliminar los datos guardados seleccionados?", "Eliminare i dati salvati selezionati?",
-                       "Geselecteerde opgeslagen data verwijderen?",
-                       "Eliminar os dados guardados selecionados?", "Удалить выбранные сохранения?",
-                       "選択したセーブデータを削除しますか？", "Smazat vybraná uložená data?" },
-    [S_SV_UPDATED] = { "Last updated", "Senast ändrad", "Zuletzt geändert", "Dernière modification",
-                       "Última modificación", "Ultima modifica", "Laatst gewijzigd", "Última modificação",
-                       "Последнее изменение", "更新日時順", "Naposledy změněno" },
-};
+static int key_to_id(const char *key);
+static void load_json(const char *code);
 
-static const char *const NAMES[LANG_COUNT] = { "", "English", "Svenska", "Deutsch", "Français", "Español",
-                                               "Italiano", "Nederlands", "Português", "Русский", "日本語", "Čeština" };
-static const char *const CODES[LANG_COUNT] = { "auto", "en", "sv", "de", "fr", "es", "it", "nl", "pt", "ru", "ja", "cs" };
+int lang_count(void) { return s_lang_count; }
 
-/* PSP:ns systemspråk → vårt språk (koreanska och kinesiska → engelska; tjeckiska finns inte som
- * systemspråk och väljs manuellt) */
-static int from_system(void)
+static void add_language(const char *code)
+{
+    if (!code || !*code || s_lang_count >= MAX_LANGUAGES) return;
+    if (!strcmp(code, "auto")) return;
+    for (int i = 1; i < s_lang_count; i++)
+        if (!strcmp(s_codes[i], code)) return;
+    int id = s_lang_count++;
+    strncpy(s_codes[id], code, CODE_CAP - 1);
+    s_codes[id][CODE_CAP - 1] = '\0';
+    strncpy(s_names[id], code, NAME_CAP - 1);
+    s_names[id][NAME_CAP - 1] = '\0';
+}
+
+static void scan_languages(void)
+{
+    SceUID dir = sceIoDopen("ms0:/PSP5/languages/");
+    s_lang_count = 1;
+    memset(s_codes, 0, sizeof(s_codes));
+    memset(s_names, 0, sizeof(s_names));
+    if (dir >= 0) {
+        SceIoDirent ent;
+        memset(&ent, 0, sizeof(ent));
+        while (sceIoDread(dir, &ent) > 0) {
+            const char *name = ent.d_name;
+            size_t n = strlen(name);
+            if (n > 5 && !strcmp(name + n - 5, ".json") && n - 5 < CODE_CAP) {
+                char code[CODE_CAP];
+                memcpy(code, name, n - 5);
+                code[n - 5] = '\0';
+                if (FIO_S_ISDIR(ent.d_stat.st_mode)) continue;
+                add_language(code);
+            }
+            memset(&ent, 0, sizeof(ent));
+        }
+        sceIoDclose(dir);
+    }
+    /* The default must exist even if the directory scan fails. */
+    int has_en = 0;
+    for (int i = 1; i < s_lang_count; i++)
+        if (!strcmp(s_codes[i], "en")) has_en = 1;
+    if (!has_en) add_language("en");
+}
+
+static const char *skip_ws(const char *p)
+{
+    while (*p == ' ' || *p == '\t' || *p == '\r' || *p == '\n') p++;
+    return p;
+}
+
+/* Decode a JSON string into UTF-8. Literal UTF-8 and standard JSON escapes
+ * are supported, including \\uXXXX for custom translations. */
+static const char *json_string(const char *p, char *out, size_t cap)
+{
+    size_t n = 0;
+    if (*p != '"') return NULL;
+    p++;
+    while (*p && *p != '"') {
+        unsigned char c = (unsigned char)*p++;
+        if (c == '\\') {
+            c = (unsigned char)*p++;
+            switch (c) {
+            case '"': case '\\': case '/': break;
+            case 'b': c = '\b'; break;
+            case 'f': c = '\f'; break;
+            case 'n': c = '\n'; break;
+            case 'r': c = '\r'; break;
+            case 't': c = '\t'; break;
+            case 'u': {
+                unsigned int cp = 0;
+                for (int i = 0; i < 4 && *p; i++) {
+                    unsigned char h = (unsigned char)*p++;
+                    cp <<= 4;
+                    if (h >= '0' && h <= '9') cp |= h - '0';
+                    else if (h >= 'a' && h <= 'f') cp |= h - 'a' + 10;
+                    else if (h >= 'A' && h <= 'F') cp |= h - 'A' + 10;
+                }
+                if (cp < 0x80) c = (unsigned char)cp;
+                else {
+                    if (cap && n + 3 < cap) {
+                        if (cp < 0x800) {
+                            out[n++] = (char)(0xC0 | (cp >> 6));
+                            out[n++] = (char)(0x80 | (cp & 0x3F));
+                        } else {
+                            out[n++] = (char)(0xE0 | (cp >> 12));
+                            out[n++] = (char)(0x80 | ((cp >> 6) & 0x3F));
+                            out[n++] = (char)(0x80 | (cp & 0x3F));
+                        }
+                    }
+                    continue;
+                }
+                break;
+            }
+            default: break;
+            }
+        }
+        if (n + 1 < cap) out[n++] = (char)c;
+    }
+    if (*p != '"') return NULL;
+    if (cap) out[n] = '\0';
+    return p + 1;
+}
+
+static int key_to_id(const char *key)
+{
+#define KEY(name) if (!strcmp(key, #name)) return name
+    KEY(S_TAB_GAMES);     KEY(S_LAUNCH);     KEY(S_SETTINGS);     KEY(S_NO_GAMES);     KEY(S_HINT_GAMES);
+     KEY(S_HINT_APPS);     KEY(S_NO_ARK);     KEY(S_LOADING);     KEY(S_SAVED);     KEY(S_LAUNCH_FAILED);
+     KEY(S_USB_MODE);     KEY(S_USB_CONNECTED);     KEY(S_USB_WAITING);     KEY(S_USB_EJECT);     KEY(S_USB_EXIT);
+     KEY(S_BACK);     KEY(S_YES);     KEY(S_NO);     KEY(S_OFF);     KEY(S_AUTO);
+     KEY(S_STANDARD);     KEY(S_ALL);     KEY(S_CAT_PERF);     KEY(S_CAT_SYSTEM);     KEY(S_CAT_PLUGINS);
+     KEY(S_CAT_POWER);     KEY(S_DESC_PSP5);     KEY(S_DESC_PERF);     KEY(S_DESC_PLUGINS);     KEY(S_BOOT_PSP5);
+     KEY(S_SOUNDS);     KEY(S_LANGUAGE);     KEY(S_IS_LAUNCHER);     KEY(S_CLEAR_CACHE);     KEY(S_VERSION);
+     KEY(S_CPU_GAME);     KEY(S_CPU_XMB);     KEY(S_EXTRA_MEM);     KEY(S_MS_CACHE);     KEY(S_ISO_CACHE);
+     KEY(S_USB_CHARGE);     KEY(S_WPA2);     KEY(S_SKIP_LOGOS);     KEY(S_HIDE_PICS);     KEY(S_HIDE_MAC);
+     KEY(S_HIDE_DLC);     KEY(S_NO_LED);     KEY(S_NO_UMD);     KEY(S_NO_ANALOG);     KEY(S_VITA_MUTE);
+     KEY(S_QA_FLAGS);     KEY(S_UMD_REGION);     KEY(S_XMB_REGION);     KEY(S_NO_PLUGINS);     KEY(S_TO_XMB);
+     KEY(S_SLEEP);     KEY(S_RESTART);     KEY(S_SHUTDOWN);     KEY(S_RECOVERY);     KEY(S_LOGOS_GAME);
+     KEY(S_LOGOS_BOOT);     KEY(S_R_JAPAN);     KEY(S_R_AMERICA);     KEY(S_R_EUROPE);     KEY(S_R_KOREA);
+     KEY(S_R_UK);     KEY(S_R_LATAM);     KEY(S_R_AUSTRALIA);     KEY(S_R_HONGKONG);     KEY(S_R_TAIWAN);
+     KEY(S_R_RUSSIA);     KEY(S_R_CHINA);     KEY(S_RL_PSP);     KEY(S_RL_APPS);     KEY(S_LANG_AUTO);
+     KEY(S_TAB_LIBRARY);     KEY(S_LIB_ALL);     KEY(S_SORT);     KEY(S_SORT_NAME);     KEY(S_SORT_RECENT);
+     KEY(S_BOOT_ANIM);     KEY(S_BATTERY_PCT);     KEY(S_HEALTH);     KEY(S_TAB_MUSIC);     KEY(S_TAB_EMULATORS);     KEY(S_NO_MUSIC);
+     KEY(S_HINT_MUSIC);     KEY(S_NOW_PLAYING);     KEY(S_NOTHING_PLAYING);     KEY(S_UNKNOWN_ARTIST);     KEY(S_LOADING_MUSIC);
+     KEY(S_SAFE_START);     KEY(S_NO_PAUSE);     KEY(S_HIB_BLOCK);     KEY(S_CAT_THEME);     KEY(S_DESC_THEME);
+     KEY(S_THEME_ART);     KEY(S_HOME_ADD);     KEY(S_HOME_REMOVE);     KEY(S_HOME_PIN);     KEY(S_HOME_UNPIN);
+     KEY(S_HOME_ADDED);     KEY(S_HOME_REMOVED);     KEY(S_HOME_PINNED);     KEY(S_HOME_UNPINNED);     KEY(S_HOME_PIN_LIMIT);
+     KEY(S_HOME_REMOVE_ASK);     KEY(S_MOVE_TO);     KEY(S_MOVED_TO_CATEGORY);     KEY(S_MOVE_EMULATORS);     KEY(S_OPTIONS);     KEY(S_FILES);     KEY(S_F_OPEN);     KEY(S_F_MARK);
+     KEY(S_F_COPY);     KEY(S_F_MOVE);     KEY(S_F_PASTE);     KEY(S_F_RENAME);     KEY(S_F_DELETE);
+     KEY(S_F_NEWDIR);     KEY(S_F_CANCEL);     KEY(S_F_EMPTY);     KEY(S_F_ITEMS);     KEY(S_F_COPYING);
+     KEY(S_F_MOVING);     KEY(S_F_DELETING);     KEY(S_F_DONE);     KEY(S_F_FAILED);     KEY(S_F_NO_SPACE);
+     KEY(S_F_CANCELLED);     KEY(S_F_FREE);     KEY(S_F_MS);     KEY(S_F_INTERNAL);     KEY(S_F_BAD_NAME);
+     KEY(S_INFO);     KEY(S_I_TYPE);     KEY(S_I_LOCATION);     KEY(S_I_FOLDER);     KEY(S_I_FILE);
+     KEY(S_I_SIZE);     KEY(S_I_CONTENTS);     KEY(S_I_SIZE_FILES);     KEY(S_I_MODIFIED);     KEY(S_I_UNCOMPRESSED);
+     KEY(S_I_COMPRESSION);     KEY(S_I_VOLUME);     KEY(S_I_IMAGE);     KEY(S_I_HOMEBREW);     KEY(S_I_PSN);
+     KEY(S_I_POPS);     KEY(S_I_UMD);     KEY(S_I_UMD_DRIVE);     KEY(S_DEL_FILE);     KEY(S_DEL_DIR);
+     KEY(S_DEL_FOREVER);     KEY(S_DELETED);     KEY(S_SAVES);     KEY(S_SV_SELECT_ALL);     KEY(S_SV_DESELECT_ALL);
+     KEY(S_SV_NONE);     KEY(S_SV_NOT_INST);     KEY(S_SV_FREE_AFTER);     KEY(S_SV_SELECTED);     KEY(S_SV_PROTECTED);
+     KEY(S_SV_DEL_ASK);     KEY(S_SV_UPDATED);
+#undef KEY
+    return -1;
+}
+
+static void load_json(const char *code)
+{
+    char path[96], *data;
+    SceUID fd;
+    snprintf(path, sizeof(path), "ms0:/PSP5/languages/%s.json", code);
+    fd = sceIoOpen(path, PSP_O_RDONLY, 0);
+    if (fd < 0) return;
+    data = (char *)malloc(JSON_CAP);
+    if (!data) { sceIoClose(fd); return; }
+    int size = sceIoRead(fd, data, JSON_CAP - 1);
+    sceIoClose(fd);
+    if (size <= 0) { free(data); return; }
+    data[size] = '\0';
+    const char *p = skip_ws(data);
+    if (*p++ != '{') { free(data); return; }
+    while (*(p = skip_ws(p)) && *p != '}') {
+        char key[64], value[TEXT_CAP];
+        const char *next = json_string(p, key, sizeof(key));
+        if (!next) break;
+        p = skip_ws(next);
+        if (*p++ != ':') break;
+        p = skip_ws(p);
+        next = json_string(p, value, sizeof(value));
+        if (!next) break;
+        if (!strncmp(key, "S_LANGNAME_", 11)) {
+            char upper[CODE_CAP];
+            size_t n = strlen(code);
+            if (n < sizeof(upper)) {
+                for (size_t i = 0; i <= n; i++) {
+                    char ch = code[i];
+                    upper[i] = (ch >= 'a' && ch <= 'z') ? (char)(ch - 'a' + 'A') : ch;
+                }
+                if (!strcmp(key + 11, upper)) {
+                    int lang_id = lang_from_code(code);
+                    if (lang_id > 0 && lang_id < s_lang_count) {
+                        strncpy(s_names[lang_id], value, NAME_CAP - 1);
+                        s_names[lang_id][NAME_CAP - 1] = '\0';
+                    }
+                }
+            }
+        }
+        int id = key_to_id(key);
+        if (id >= 0 && id < S_COUNT && value[0]) {
+            strncpy(s_text[id], value, TEXT_CAP - 1);
+            s_text[id][TEXT_CAP - 1] = '\0';
+        }
+        p = skip_ws(next);
+        if (*p == ',') { p++; continue; }
+        if (*p != '}') break;
+    }
+    free(data);
+}
+
+static void load_language(void)
+{
+    memset(s_text, 0, sizeof(s_text));
+    load_json("en");
+    if (s_lang > 0 && s_lang < s_lang_count && strcmp(s_codes[s_lang], "en"))
+        load_json(s_codes[s_lang]);
+}
+
+static const char *system_code(void)
 {
     int sys = PSP_SYSTEMPARAM_LANGUAGE_ENGLISH;
     if (sceUtilityGetSystemParamInt(PSP_SYSTEMPARAM_ID_INT_LANGUAGE, &sys) < 0)
-        return LANG_EN;
+        return "en";
     switch (sys) {
-    case PSP_SYSTEMPARAM_LANGUAGE_JAPANESE:   return LANG_JA;
-    case PSP_SYSTEMPARAM_LANGUAGE_FRENCH:     return LANG_FR;
-    case PSP_SYSTEMPARAM_LANGUAGE_SPANISH:    return LANG_ES;
-    case PSP_SYSTEMPARAM_LANGUAGE_GERMAN:     return LANG_DE;
-    case PSP_SYSTEMPARAM_LANGUAGE_ITALIAN:    return LANG_IT;
-    case PSP_SYSTEMPARAM_LANGUAGE_DUTCH:      return LANG_NL;
-    case PSP_SYSTEMPARAM_LANGUAGE_PORTUGUESE: return LANG_PT;
-    case PSP_SYSTEMPARAM_LANGUAGE_RUSSIAN:    return LANG_RU;
-    default:                                  return LANG_EN;
+    case PSP_SYSTEMPARAM_LANGUAGE_JAPANESE:   return "ja";
+    case PSP_SYSTEMPARAM_LANGUAGE_FRENCH:      return "fr";
+    case PSP_SYSTEMPARAM_LANGUAGE_SPANISH:     return "es";
+    case PSP_SYSTEMPARAM_LANGUAGE_GERMAN:      return "de";
+    case PSP_SYSTEMPARAM_LANGUAGE_ITALIAN:     return "it";
+    case PSP_SYSTEMPARAM_LANGUAGE_DUTCH:       return "nl";
+    case PSP_SYSTEMPARAM_LANGUAGE_PORTUGUESE:  return "pt";
+    case PSP_SYSTEMPARAM_LANGUAGE_RUSSIAN:     return "ru";
+    default:                                   return "en";
     }
 }
 
 void lang_apply(void)
 {
-    s_lang = g_lang_setting > LANG_AUTO && g_lang_setting < LANG_COUNT ? g_lang_setting : from_system();
+    char requested_code[CODE_CAP] = "";
+    if (g_lang_setting > 0 && g_lang_setting < s_lang_count)
+        strncpy(requested_code, s_codes[g_lang_setting], sizeof(requested_code) - 1);
+    scan_languages();
+    /* Names are loaded from each file's S_LANGNAME_<CODE> metadata. */
+    for (int i = 1; i < s_lang_count; i++)
+        load_json(s_codes[i]);
+    if (requested_code[0]) {
+        s_lang = lang_from_code(requested_code);
+        /* Directory iteration order is not guaranteed; keep the saved index in sync. */
+        g_lang_setting = (s_lang == LANG_AUTO) ? LANG_AUTO : (unsigned char)s_lang;
+    } else {
+        s_lang = lang_from_code(system_code());
+        if (s_lang <= 0 || s_lang >= s_lang_count) s_lang = lang_from_code("en");
+        if (s_lang <= 0 || s_lang >= s_lang_count) s_lang = 1;
+        g_lang_setting = LANG_AUTO;
+    }
+    load_language();
 }
 
 const char *L(StrId id)
 {
-    if (id >= S_COUNT)
-        return "";
-    const char *s = T[id][s_lang - 1];
-    return s ? s : T[id][LANG_EN - 1];
+    if (id < 0 || id >= S_COUNT) return "";
+    return s_text[id][0] ? s_text[id] : "";
 }
 
 const char *lang_name(int id)
 {
-    if (id == LANG_AUTO)
-        return L(S_LANG_AUTO);
-    return id > 0 && id < LANG_COUNT ? NAMES[id] : "";
+    if (id == LANG_AUTO) return L(S_LANG_AUTO);
+    return id > 0 && id < s_lang_count ? s_names[id] : "";
 }
 
 const char *lang_code(int id)
 {
-    return id >= 0 && id < LANG_COUNT ? CODES[id] : "auto";
+    return id == LANG_AUTO ? "auto" : (id > 0 && id < s_lang_count ? s_codes[id] : "auto");
 }
 
 int lang_from_code(const char *code)
 {
-    for (int i = 0; i < LANG_COUNT; i++)
-        if (!strncmp(code, CODES[i], strlen(CODES[i])))
-            return i;
+    if (s_lang_count <= 1) scan_languages();
+    if (!code || !*code) return LANG_AUTO;
+    if (!strcmp(code, "auto")) return LANG_AUTO;
+    for (int i = 1; i < s_lang_count; i++)
+        if (!strcmp(code, s_codes[i])) return i;
     return LANG_AUTO;
 }
 
 int lang_needs_cjk(void)
 {
-    return s_lang == LANG_JA || s_lang == LANG_RU;
+    return s_lang > 0 && s_lang < s_lang_count &&
+           (!strcmp(s_codes[s_lang], "ja") || !strcmp(s_codes[s_lang], "ru"));
 }

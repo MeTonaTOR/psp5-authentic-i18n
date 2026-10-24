@@ -24,10 +24,27 @@ void config_load(const char *data_dir)
             g_sound_on = p[6] != '0';
         if ((p = strstr(buf, "bootanim=")))
             g_boot_anim = p[9] != '0';
-        if ((p = strstr(buf, "lang=")))
-            g_lang_setting = lang_from_code(p + 5);
-        if ((p = strstr(buf, "theme=")))
-            g_theme = theme_from_code(p + 6);
+        /* Values are line-based: never pass the newline and following settings to the lookup. */
+        if ((p = strstr(buf, "lang="))) {
+            char lang[16];
+            size_t len = 0;
+            p += 5;
+            while (p[len] && p[len] != '\r' && p[len] != '\n' && len < sizeof(lang) - 1)
+                len++;
+            memcpy(lang, p, len);
+            lang[len] = '\0';
+            g_lang_setting = lang_from_code(lang);
+        }
+        if ((p = strstr(buf, "theme="))) {
+            char theme[32];
+            size_t len = 0;
+            p += 6;
+            while (p[len] && p[len] != '\r' && p[len] != '\n' && len < sizeof(theme) - 1)
+                len++;
+            memcpy(theme, p, len);
+            theme[len] = '\0';
+            g_theme = theme_from_code(theme);
+        }
         if ((p = strstr(buf, "themeart=")))
             g_theme_art = p[9] != '0';
         if ((p = strstr(buf, "batterypct=")))

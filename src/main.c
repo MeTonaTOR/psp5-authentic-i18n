@@ -30,6 +30,7 @@
 #include "gameops.h"
 #include "saves.h"
 #include "home.h"
+#include "categories.h"
 
 PSP_MODULE_INFO("psp5", PSP_MODULE_USER, 0, 1);
 PSP_MAIN_THREAD_ATTR(THREAD_ATTR_USER | THREAD_ATTR_VFPU);
@@ -448,6 +449,9 @@ int main(int argc, char *argv[])
     int failed = start_begin(); /* först av allt – före allt som kan hänga sig */
     art_init(DATA_DIR);
     config_load(DATA_DIR); /* ljud och språk */
+    char categories_file[256];
+    snprintf(categories_file, sizeof(categories_file), "%s/categories.txt", DATA_DIR);
+    categories_load(categories_file);
     sys_init(s_self);
     osd_init(); /* volymindikatorn behöver ARK */
     testrun_init();

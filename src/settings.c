@@ -74,7 +74,7 @@ static struct {
 /* valtexter byggs om när språket ändras */
 static const char *const OPT_CLOCK[] = { "Auto", "133 MHz", "222 MHz", "333 MHz", "383 MHz", "403 MHz", "423 MHz", "443 MHz" };
 static const char *OPT_HIGHMEM[5], *OPT_MSCACHE[4], *OPT_INFERNO[3], *OPT_LOGOS[4], *OPT_PICS[4];
-static const char *OPT_UMDREG[4], *OPT_VSHREG[14], *OPT_LANG[LANG_COUNT];
+static const char *OPT_UMDREG[4], *OPT_VSHREG[14], *OPT_LANG[32];
 
 static void build_options(void)
 {
@@ -95,7 +95,7 @@ static void build_options(void)
     memcpy(OPT_PICS, pics, sizeof(pics));
     memcpy(OPT_UMDREG, umd, sizeof(umd));
     memcpy(OPT_VSHREG, vsh, sizeof(vsh));
-    for (int i = 0; i < LANG_COUNT; i++)
+    for (int i = 0; i < lang_count() && i < 32; i++)
         OPT_LANG[i] = lang_name(i);
 }
 
@@ -184,7 +184,7 @@ static void build(int rebuild)
     Category *c;
 
     c = &s_cats[CAT_PSP5];
-    c->name = "psp5";
+    c->name = "psp5-authentic-i18n";
     c->desc = L(S_DESC_PSP5);
     toggle(c, L(S_BOOT_PSP5), &g_cfw.launcher);
     toggle(c, L(S_SOUNDS), &g_sound_on);
@@ -193,14 +193,14 @@ static void build(int rebuild)
     c->items[c->count - 1].own = 1;
     toggle(c, L(S_BATTERY_PCT), &g_battery_pct);
     c->items[c->count - 1].own = 1;
-    choice(c, L(S_LANGUAGE), &g_lang_setting, OPT_LANG, LANG_COUNT);
+    choice(c, L(S_LANGUAGE), &g_lang_setting, OPT_LANG, lang_count());
     c->items[c->count - 1].own = 1;
     info(c, L(S_IS_LAUNCHER), L(sys_is_launcher() ? S_YES : S_NO));
     action(c, L(S_CLEAR_CACHE), SA_CLEAR_CACHE);
 #ifdef PSP5_ARK4
-    info(c, L(S_VERSION), "1.1.0 (ARK-4)");
+    info(c, L(S_VERSION), "1.0.0 (ARK-4)");
 #else
-    info(c, L(S_VERSION), "1.1.0 (ARK-5)");
+    info(c, L(S_VERSION), "1.0.0 (ARK-5)");
 #endif
     info(c, "CFW", system_name());
 

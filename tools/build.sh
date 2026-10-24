@@ -12,8 +12,9 @@ if [ "$1" = "test" ]; then
     # testbygge med skriptat testläge (src/testrun.c) – hamnar i dist-test/
     make clean >/dev/null
     make -j"$(nproc)" EXTRA=-DPSP5_TEST
-    mkdir -p dist-test/PSP/GAME/PSP5
+    mkdir -p dist-test/PSP/GAME/PSP5 dist-test/PSP5/languages
     cp EBOOT.PBP dist-test/PSP/GAME/PSP5/EBOOT.PBP
+    cp languages/*.json dist-test/PSP5/languages/
     make clean >/dev/null
     ls -l dist-test/PSP/GAME/PSP5/EBOOT.PBP
     exit 0
@@ -23,8 +24,9 @@ if [ "$1" = "ark4" ]; then
     # ARK-4-versionen: byggs utan ARK-5:s ArkCtrl-bibliotek
     make clean >/dev/null
     make -j"$(nproc)" ARK=4
-    mkdir -p dist-ark4/PSP/GAME/PSP5
+    mkdir -p dist-ark4/PSP/GAME/PSP5 dist-ark4/PSP5/languages
     cp EBOOT.PBP dist-ark4/PSP/GAME/PSP5/EBOOT.PBP
+    cp languages/*.json dist-ark4/PSP5/languages/
     make clean >/dev/null
     ls -l dist-ark4/PSP/GAME/PSP5/EBOOT.PBP
     exit 0
@@ -38,6 +40,7 @@ fi
 
 make clean >/dev/null # inga objektfiler från ett annat bygge (test/ARK-4)
 make -j"$(nproc)"
-mkdir -p dist/PSP/GAME/PSP5
+mkdir -p dist/PSP/GAME/PSP5 dist/PSP5/languages
 cp EBOOT.PBP dist/PSP/GAME/PSP5/EBOOT.PBP
+cp languages/*.json dist/PSP5/languages/
 ls -l dist/PSP/GAME/PSP5/EBOOT.PBP
