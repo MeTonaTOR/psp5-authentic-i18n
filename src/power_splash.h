@@ -1,5 +1,10 @@
 #ifndef POWER_SPLASH_H
 #define POWER_SPLASH_H
-/* Show a short power transition. Pass 1 after app_stop(), 0 while the menu renderer is active. */
-void power_splash_run(int manage_gfx);
+enum {
+    POWER_SPLASH_RESTART = 0,
+    POWER_SPLASH_SHUTDOWN = 1,
+    POWER_SPLASH_SLEEP = 2
+};
+/* Show a short transition. manage_gfx=1 after app_stop(), 0 while menu renderer is active. */
+void power_splash_run(int mode, int manage_gfx);
 #endif
