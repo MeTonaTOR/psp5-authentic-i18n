@@ -410,7 +410,7 @@ static int run_action(int action, EntryList *list, Ui *ui)
         start_confirmed();
     switch (action) {
     case SA_SUSPEND:
-        power_splash_run(0);
+        power_splash_run(POWER_SPLASH_SLEEP, 0);
         sys_suspend();
         return 0;
     case SA_USB:
@@ -430,8 +430,8 @@ static int run_action(int action, EntryList *list, Ui *ui)
     app_stop(list, ui);
     switch (action) {
     case SA_XMB:      sys_exit_xmb(); break;
-    case SA_RESTART:  power_splash_run(1); sys_restart(); break;
-    case SA_SHUTDOWN: power_splash_run(1); sys_shutdown(); break;
+    case SA_RESTART:  power_splash_run(POWER_SPLASH_RESTART, 1); sys_restart(); break;
+    case SA_SHUTDOWN: power_splash_run(POWER_SPLASH_SHUTDOWN, 1); sys_shutdown(); break;
     case SA_RECOVERY: sys_recovery(); break;
     }
     for (;;)
