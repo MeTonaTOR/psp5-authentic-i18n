@@ -165,5 +165,9 @@
   "S_LANGNAME_EN": "English",
   "S_MOVE_TO": "Move to...",
   "S_MOVED_TO_CATEGORY": "Moved to category",
-  "S_MOVE_EMULATORS": "Emulators"
+  "S_MOVE_EMULATORS": "Emulators",
+  "S_POWER_RESTARTING": "Restarting...",
+  "S_POWER_SHUTTING_DOWN": "Shutting down...",
+  "S_POWER_SLEEPING": "Entering rest mode...",
+  "S_POWER_WAKE": "Welcome back"
 }
