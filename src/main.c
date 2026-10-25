@@ -21,6 +21,7 @@
 #include "lang.h"
 #include "config.h"
 #include "boot.h"
+#include "power_splash.h"
 #include "music.h"
 #include "umd.h"
 #include "theme.h"
@@ -409,6 +410,7 @@ static int run_action(int action, EntryList *list, Ui *ui)
         start_confirmed();
     switch (action) {
     case SA_SUSPEND:
+        power_splash_run(0);
         sys_suspend();
         return 0;
     case SA_USB:
@@ -428,8 +430,8 @@ static int run_action(int action, EntryList *list, Ui *ui)
     app_stop(list, ui);
     switch (action) {
     case SA_XMB:      sys_exit_xmb(); break;
-    case SA_RESTART:  sys_restart(); break;
-    case SA_SHUTDOWN: sys_shutdown(); break;
+    case SA_RESTART:  power_splash_run(1); sys_restart(); break;
+    case SA_SHUTDOWN: power_splash_run(1); sys_shutdown(); break;
     case SA_RECOVERY: sys_recovery(); break;
     }
     for (;;)
