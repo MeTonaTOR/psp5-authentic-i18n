@@ -203,7 +203,7 @@ static void sleep_and_wake(Ui *ui)
     int music = music_state() == MUSIC_PLAYING;
     if (music)
         music_toggle_pause();
-    sound_prepare_boot(); /* startljudet frigjordes efter förra startskärmen */
+
 
     /* Svart i båda bildbuffertarna, sedan vilar psp5 utan att rita: grafikkretsen ska
      * inte arbeta medan PSP:n somnar och vaknar. Har vi inte sett PSP:n somna (t.ex.
@@ -229,7 +229,7 @@ static void sleep_and_wake(Ui *ui)
     s_sleeping = s_resumed = 0;
     theme_backdrop_forget(); /* the video memory may not have been kept through the sleep */
 
-    boot_run(&s_running);
+    power_splash_run(POWER_SPLASH_WAKE, 0);
     if (music)
         music_toggle_pause();
     ui_replay_intro(ui);
