@@ -162,7 +162,8 @@ static int key_to_id(const char *key)
      KEY(S_I_POPS);     KEY(S_I_UMD);     KEY(S_I_UMD_DRIVE);     KEY(S_DEL_FILE);     KEY(S_DEL_DIR);
      KEY(S_DEL_FOREVER);     KEY(S_DELETED);     KEY(S_SAVES);     KEY(S_SV_SELECT_ALL);     KEY(S_SV_DESELECT_ALL);
      KEY(S_SV_NONE);     KEY(S_SV_NOT_INST);     KEY(S_SV_FREE_AFTER);     KEY(S_SV_SELECTED);     KEY(S_SV_PROTECTED);
-     KEY(S_SV_DEL_ASK);     KEY(S_SV_UPDATED);
+     KEY(S_SV_DEL_ASK);     KEY(S_SV_UPDATED);     KEY(S_POWER_RESTARTING);     KEY(S_POWER_SHUTTING_DOWN);
+     KEY(S_POWER_SLEEPING);     KEY(S_POWER_WAKE);
 #undef KEY
     return -1;
 }
