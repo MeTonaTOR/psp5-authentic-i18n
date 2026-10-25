@@ -166,5 +166,9 @@
   "S_LANGNAME_EN": "English",
   "S_MOVE_TO": "Flytta till...",
   "S_MOVED_TO_CATEGORY": "Flyttad till kategori",
-  "S_MOVE_EMULATORS": "Emulatorer"
+  "S_MOVE_EMULATORS": "Emulatorer",
+  "S_POWER_RESTARTING": "Startar om...",
+  "S_POWER_SHUTTING_DOWN": "Stänger av...",
+  "S_POWER_SLEEPING": "Går in i viloläge...",
+  "S_POWER_WAKE": "Välkommen tillbaka"
 }
