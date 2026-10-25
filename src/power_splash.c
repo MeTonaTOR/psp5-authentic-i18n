@@ -3,6 +3,7 @@
 #include <math.h>
 #include "gfx.h"
 #include "power_splash.h"
+#include "lang.h"
 
 static float clamp01(float v) { return v < 0.0f ? 0.0f : v > 1.0f ? 1.0f : v; }
 static float ease(float v) { v = clamp01(v); return v * v * (3.0f - 2.0f * v); }
@@ -11,9 +12,9 @@ static float ease(float v) { v = clamp01(v); return v * v * (3.0f - 2.0f * v); }
 void power_splash_run(int mode, int manage_gfx)
 {
     const float duration = 1.35f;
-    const char *label = mode == POWER_SPLASH_SHUTDOWN ? "Shutting down..." :
-                        mode == POWER_SPLASH_SLEEP ? "Entering rest mode..." :
-                        mode == POWER_SPLASH_WAKE ? "Welcome back" : "Restarting...";
+    StrId label_id = mode == POWER_SPLASH_SHUTDOWN ? S_POWER_SHUTTING_DOWN :
+                     mode == POWER_SPLASH_SLEEP ? S_POWER_SLEEPING :
+                     mode == POWER_SPLASH_WAKE ? S_POWER_WAKE : S_POWER_RESTARTING;
     u64 start;
     if (manage_gfx) {
         gfx_init();
@@ -46,7 +47,7 @@ void power_splash_run(int mode, int manage_gfx)
                  RGBA(235, 244, 255, (int)(205.0f * a)));
         gfx_circle(240.0f, 122.0f, 3.0f, RGBA(255, 255, 255, (int)(230.0f * a)));
         text_draw(240.0f, 181.0f, 0.65f, 0,
-                  RGBA(215, 228, 250, (int)(225.0f * a)), ALIGN_CENTER, label);
+                  RGBA(215, 228, 250, (int)(225.0f * a)), ALIGN_CENTER, L(label_id));
         gfx_end();
     }
     if (manage_gfx) {
