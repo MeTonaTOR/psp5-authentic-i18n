@@ -165,5 +165,9 @@
   "S_LANGNAME_PT": "Português",
   "S_MOVE_TO": "Mover para...",
   "S_MOVED_TO_CATEGORY": "Movido para a categoria",
-  "S_MOVE_EMULATORS": "Emuladores"
+  "S_MOVE_EMULATORS": "Emuladores",
+  "S_POWER_RESTARTING": "A reiniciar...",
+  "S_POWER_SHUTTING_DOWN": "A desligar...",
+  "S_POWER_SLEEPING": "A entrar em modo de descanso...",
+  "S_POWER_WAKE": "Bem-vindo de volta"
 }

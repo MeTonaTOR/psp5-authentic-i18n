@@ -165,5 +165,9 @@
   "S_LANGNAME_RU": "Русский",
   "S_MOVE_TO": "Переместить в...",
   "S_MOVED_TO_CATEGORY": "Перемещено в категорию",
-  "S_MOVE_EMULATORS": "Эмуляторы"
+  "S_MOVE_EMULATORS": "Эмуляторы",
+  "S_POWER_RESTARTING": "Перезапуск...",
+  "S_POWER_SHUTTING_DOWN": "Выключение...",
+  "S_POWER_SLEEPING": "Переход в режим покоя...",
+  "S_POWER_WAKE": "С возвращением"
 }

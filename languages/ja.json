@@ -164,5 +164,9 @@
   "S_LANGNAME_JA": "日本語",
   "S_MOVE_TO": "移動先...",
   "S_MOVED_TO_CATEGORY": "カテゴリに移動しました",
-  "S_MOVE_EMULATORS": "エミュレーター"
+  "S_MOVE_EMULATORS": "エミュレーター",
+  "S_POWER_RESTARTING": "再起動中...",
+  "S_POWER_SHUTTING_DOWN": "シャットダウン中...",
+  "S_POWER_SLEEPING": "レストモードに移行中...",
+  "S_POWER_WAKE": "おかえりなさい"
 }

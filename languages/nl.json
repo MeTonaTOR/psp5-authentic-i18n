@@ -165,5 +165,9 @@
   "S_LANGNAME_NL": "Nederlands",
   "S_MOVE_TO": "Verplaatsen naar...",
   "S_MOVED_TO_CATEGORY": "Verplaatst naar categorie",
-  "S_MOVE_EMULATORS": "Emulators"
+  "S_MOVE_EMULATORS": "Emulators",
+  "S_POWER_RESTARTING": "Opnieuw opstarten...",
+  "S_POWER_SHUTTING_DOWN": "Afsluiten...",
+  "S_POWER_SLEEPING": "Ruststand inschakelen...",
+  "S_POWER_WAKE": "Welkom terug"
 }

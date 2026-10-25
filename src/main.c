@@ -21,6 +21,7 @@
 #include "lang.h"
 #include "config.h"
 #include "boot.h"
+#include "power_splash.h"
 #include "music.h"
 #include "umd.h"
 #include "theme.h"
@@ -202,7 +203,7 @@ static void sleep_and_wake(Ui *ui)
     int music = music_state() == MUSIC_PLAYING;
     if (music)
         music_toggle_pause();
-    sound_prepare_boot(); /* startljudet frigjordes efter förra startskärmen */
+
 
     /* Svart i båda bildbuffertarna, sedan vilar psp5 utan att rita: grafikkretsen ska
      * inte arbeta medan PSP:n somnar och vaknar. Har vi inte sett PSP:n somna (t.ex.
@@ -228,7 +229,7 @@ static void sleep_and_wake(Ui *ui)
     s_sleeping = s_resumed = 0;
     theme_backdrop_forget(); /* the video memory may not have been kept through the sleep */
 
-    boot_run(&s_running);
+    power_splash_run(POWER_SPLASH_WAKE, 0);
     if (music)
         music_toggle_pause();
     ui_replay_intro(ui);
@@ -409,6 +410,7 @@ static int run_action(int action, EntryList *list, Ui *ui)
         start_confirmed();
     switch (action) {
     case SA_SUSPEND:
+        power_splash_run(POWER_SPLASH_SLEEP, 0);
         sys_suspend();
         return 0;
     case SA_USB:
@@ -428,8 +430,8 @@ static int run_action(int action, EntryList *list, Ui *ui)
     app_stop(list, ui);
     switch (action) {
     case SA_XMB:      sys_exit_xmb(); break;
-    case SA_RESTART:  sys_restart(); break;
-    case SA_SHUTDOWN: sys_shutdown(); break;
+    case SA_RESTART:  power_splash_run(POWER_SPLASH_RESTART, 1); sys_restart(); break;
+    case SA_SHUTDOWN: power_splash_run(POWER_SPLASH_SHUTDOWN, 1); sys_shutdown(); break;
     case SA_RECOVERY: sys_recovery(); break;
     }
     for (;;)
