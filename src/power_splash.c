@@ -13,7 +13,7 @@ void power_splash_run(int mode, int manage_gfx)
     const float duration = 1.35f;
     const char *label = mode == POWER_SPLASH_SHUTDOWN ? "Shutting down..." :
                         mode == POWER_SPLASH_SLEEP ? "Entering rest mode..." :
-                        "Restarting...";
+                        mode == POWER_SPLASH_WAKE ? "Welcome back" : "Restarting...";
     u64 start;
     if (manage_gfx) {
         gfx_init();
